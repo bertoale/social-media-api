@@ -27,7 +27,7 @@ func (r *repository) Delete(id uint) error {
 // FindAll implements Repository.
 func (r *repository) FindAll() ([]*Blog, error) {
 	var blogs []*Blog
-	if err := r.db.Find(&blogs).Error; err != nil {
+	if err := r.db.Preload("Author").Find(&blogs).Error; err != nil {
 		return nil, err
 	}
 	return blogs, nil

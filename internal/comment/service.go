@@ -140,5 +140,5 @@ func (s *service) UpdateComment(userID uint, commentID uint, req UpdateCommentRe
 func NewService(commentRepo Repository, blogRepo blog.Repository) Service {
 	return &service{
 		commentRepo: commentRepo,
-		blogRepo: blogRepo}
+		blogRepo:    blogRepo}
 }

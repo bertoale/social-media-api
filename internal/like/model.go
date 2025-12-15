@@ -14,10 +14,6 @@ type Like struct {
 	Blog blog.Blog `gorm:"foreignKey:BlogID"`
 }
 
-type LikeRequest struct {
-	BlogID uint `json:"blog_id" form:"blog_id" binding:"required"`
-}
-
 type LikeResponse struct {
 	ID     uint `json:"id"`
 	UserID uint `json:"user_id"`

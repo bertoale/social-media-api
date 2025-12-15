@@ -15,7 +15,28 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
+
+// @title GO-SOSMED API
+// @version 1.0
+// @description API for Golang Social Media Application
+// @termsOfService http://swagger.io/terms/
+
+// @contact.name API Support
+// @contact.email support@go-sosmed.com
+
+// @license.name MIT
+// @license.url https://opensource.org/licenses/MIT
+
+// @host localhost:5000
+// @BasePath /
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Type "Bearer" followed by a space and JWT token.
 
 func main() {
 	cfg := config.LoadConfig()
@@ -68,6 +89,8 @@ func main() {
 			"timestamp": time.Now(),
 		})
 	})
+		r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
 
 	//seeder
 	user.SeedAdminUser()

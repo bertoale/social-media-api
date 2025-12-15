@@ -11,11 +11,6 @@ type Follow struct {
 	Following user.User `gorm:"foreignKey:FollowingID"`
 }
 
-type FollowRequest struct {
-	FollowingID uint `json:"following_id" form:"following_id" binding:"required"`
-	FollowerID  uint `json:"follower_id" form:"follower_id" binding:"required"`
-}
-
 type FollowerResponse struct {
 	ID       uint                `json:"id"`
 	Follower user.AuthorResponse `json:"follower"`

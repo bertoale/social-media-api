@@ -34,7 +34,17 @@ func GetUserIDFromContext(c *gin.Context) (uint, bool) {
 	return uid, ok
 }
 
-// Register handles user registration
+// Register godoc
+// @Summary Register user
+// @Description Register
+// @Tags User
+// @Accept json
+// @Produce json
+// @Param data body LoginRequest true "Login data"
+// @Success 200 {object} response.SuccessResponse
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 401 {object} response.ErrorResponse
+// @Router /api/register [post]
 func (ctrl *Controller) Register(c *gin.Context) {
 	var req RegisterRequest
 	if err := c.ShouldBind(&req); err != nil {

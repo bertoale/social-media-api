@@ -22,7 +22,7 @@ func ParseBlogID(c *gin.Context) (uint, error) {
 	return uint(id), nil
 }
 func ParseUserID(c *gin.Context) (uint, error) {
-	idParam := c.Param("id")
+	idParam := c.Param("user_id")
 	id, err := strconv.ParseUint(idParam, 10, 32)
 	if err != nil {
 		return 0, err

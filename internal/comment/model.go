@@ -20,8 +20,7 @@ type Comment struct {
 	Blog        blog.Blog  `gorm:"foreignKey:BlogID"` // harus kapital
 	User        user.User  `gorm:"foreignKey:UserID"`
 	ReplyToUser *user.User `gorm:"foreignKey:ReplyToUserID"`
-	Replies []Comment `gorm:"foreignKey:ParentID;constraint:OnDelete:CASCADE"`
-
+	Replies     []Comment  `gorm:"foreignKey:ParentID;constraint:OnDelete:CASCADE"`
 }
 
 type CommentRequest struct {
@@ -47,6 +46,7 @@ type ReplyToUserResponse struct {
 	ID       uint   `json:"id"`
 	Username string `json:"username"`
 }
+
 
 type ReplyCommentRequest struct {
 	Content       string `json:"content" binding:"required"`
