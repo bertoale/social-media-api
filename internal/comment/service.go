@@ -1,7 +1,9 @@
 package comment
 
 import (
+	"errors"
 	"fmt"
+	"go-sosmed/internal/blog"
 )
 
 type Service interface {
@@ -16,24 +18,25 @@ type Service interface {
 }
 
 type service struct {
-	repo Repository
+	commentRepo Repository
+	blogRepo    blog.Repository
 }
 
 // GetByID implements Service.
 func (s *service) GetByID(commentID uint) (*Comment, error) {
-	return s.repo.GetByID(commentID)
+	return s.commentRepo.GetByID(commentID)
 }
 
 func (s *service) CreateComment(comment *Comment) (*Comment, error) {
-	if err := s.repo.Create(comment); err != nil {
+	if err := s.commentRepo.Create(comment); err != nil {
 		return nil, err
 	}
 
-	return s.repo.GetByID(comment.ID) 
+	return s.commentRepo.GetByID(comment.ID)
 }
 
 func (s *service) DeleteComment(userID uint, commentID uint) error {
-	isOwner, err := s.repo.IsOwner(commentID, userID)
+	isOwner, err := s.commentRepo.IsOwner(commentID, userID)
 	if err != nil {
 		return fmt.Errorf("failed to verify ownership: %w", err)
 	}
@@ -41,25 +44,39 @@ func (s *service) DeleteComment(userID uint, commentID uint) error {
 		return fmt.Errorf("unauthorized")
 	}
 
-	comment, err := s.repo.GetByID(commentID)
+	comment, err := s.commentRepo.GetByID(commentID)
 	if err != nil {
 		return fmt.Errorf("comment not found: %w", err)
 	}
 
-	return s.repo.Delete(comment)
+	return s.commentRepo.Delete(comment)
 }
 
 func (s *service) GetCommentTree(blogID uint) ([]Comment, error) {
-	return s.repo.GetCommentTree(blogID)
+	blog, err := s.blogRepo.FindByID(blogID)
+	if err != nil {
+		return nil, errors.New("blog not found")
+	}
+
+	if blog.DeletedAt.Valid {
+		return nil, errors.New("blog not found")
+	}
+
+	comments, err := s.commentRepo.GetCommentTree(blogID)
+	if err != nil {
+		return nil, err
+	}
+
+	return comments, nil
 }
 
 func (s *service) GetReplies(commentID uint) ([]Comment, error) {
-	return s.repo.GetReplies(commentID)
+	return s.commentRepo.GetReplies(commentID)
 }
 
 func (s *service) ReplyToComment(userID uint, targetID uint, blogID uint, content string) (*Comment, error) {
 
-	target, err := s.repo.GetByID(targetID)
+	target, err := s.commentRepo.GetByID(targetID)
 	if err != nil {
 		return nil, fmt.Errorf("target comment not found")
 	}
@@ -83,7 +100,7 @@ func (s *service) ReplyToComment(userID uint, targetID uint, blogID uint, conten
 		ReplyToUserID: &replyToUserID,
 	}
 
-	if err := s.repo.Create(reply); err != nil {
+	if err := s.commentRepo.Create(reply); err != nil {
 		return nil, err
 	}
 
@@ -91,7 +108,7 @@ func (s *service) ReplyToComment(userID uint, targetID uint, blogID uint, conten
 }
 
 func (s *service) UpdateComment(userID uint, commentID uint, req UpdateCommentRequest) (*Comment, error) {
-	isOwner, err := s.repo.IsOwner(commentID, userID)
+	isOwner, err := s.commentRepo.IsOwner(commentID, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to verify ownership: %w", err)
 	}
@@ -99,7 +116,7 @@ func (s *service) UpdateComment(userID uint, commentID uint, req UpdateCommentRe
 		return nil, fmt.Errorf("unauthorized")
 	}
 
-	comment, err := s.repo.GetByID(commentID)
+	comment, err := s.commentRepo.GetByID(commentID)
 	if err != nil {
 		return nil, fmt.Errorf("comment not found: %w", err)
 	}
@@ -114,12 +131,14 @@ func (s *service) UpdateComment(userID uint, commentID uint, req UpdateCommentRe
 		comment.Edited = true
 	}
 
-	if err := s.repo.Update(comment); err != nil {
+	if err := s.commentRepo.Update(comment); err != nil {
 		return nil, fmt.Errorf("failed to update comment: %w", err)
 	}
 	return comment, nil
 }
 
-func NewService(repo Repository) Service {
-	return &service{repo: repo}
+func NewService(commentRepo Repository, blogRepo blog.Repository) Service {
+	return &service{
+		commentRepo: commentRepo,
+		blogRepo: blogRepo}
 }

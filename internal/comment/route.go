@@ -8,7 +8,6 @@ import (
 )
 
 func SetupCommentRoute(r *gin.Engine, ctrl *Controller, cfg *config.Config) {
-
 	api := r.Group("/api")
 	api.Use(middlewares.Authenticate(cfg))
 
@@ -17,10 +16,10 @@ func SetupCommentRoute(r *gin.Engine, ctrl *Controller, cfg *config.Config) {
 	api.GET("/blogs/:blog_id/comments", ctrl.GetCommentTree)
 
 	// Replies (level 2 rule)
-	api.POST("/blogs/:blog_id/comments/:id/reply", ctrl.ReplyToComment)
-	api.GET("/blogs/:blog_id/comments/:id/replies", ctrl.GetReplies)
+	api.POST("/blogs/:blog_id/comments/:comment_id/reply", ctrl.ReplyToComment)
+	api.GET("/blogs/:blog_id/comments/:comment_id/replies", ctrl.GetReplies)
 
 	// Comment actions
-	api.PUT("/comments/:id", ctrl.UpdateComment)
-	api.DELETE("/comments/:id", ctrl.DeleteComment)
+	api.PUT("/comments/:comment_id", ctrl.UpdateComment)
+	api.DELETE("/comments/:comment_id", ctrl.DeleteComment)
 }

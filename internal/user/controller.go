@@ -4,6 +4,7 @@ import (
 	"go-sosmed/pkg/config"
 	"go-sosmed/pkg/response"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -104,7 +105,14 @@ func (ctrl *Controller) UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	// If middleware sets uploaded file
+	oldUser, err := ctrl.service.GetUserByID(authUserID)
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, "user not found")
+		return
+	}
+
+	oldAvatar := oldUser.Avatar
+
 	if uploadedFile, exists := c.Get("uploadedFile"); exists {
 		fileStr := uploadedFile.(string)
 		if fileStr != "" {
@@ -116,6 +124,11 @@ func (ctrl *Controller) UpdateProfile(c *gin.Context) {
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, err.Error())
 		return
+	}
+
+	// Delete old avatar file if a new one was uploaded
+	if req.Avatar != nil && oldAvatar != "" && oldAvatar != *req.Avatar {
+		_ = os.Remove("." + oldAvatar)
 	}
 
 	response.Success(c, http.StatusOK, "profile updated successfully", user)

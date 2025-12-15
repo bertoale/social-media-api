@@ -20,11 +20,12 @@ type Comment struct {
 	Blog        blog.Blog  `gorm:"foreignKey:BlogID"` // harus kapital
 	User        user.User  `gorm:"foreignKey:UserID"`
 	ReplyToUser *user.User `gorm:"foreignKey:ReplyToUserID"`
-	Replies     []Comment  `gorm:"foreignKey:ParentID"`
+	Replies []Comment `gorm:"foreignKey:ParentID;constraint:OnDelete:CASCADE"`
+
 }
 
 type CommentRequest struct {
-	Content string `json:"content" binding:"required"`
+	Content string `json:"content" form:"content" binding:"required"`
 }
 
 type CommentResponse struct {
@@ -45,36 +46,9 @@ type UpdateCommentRequest struct {
 type ReplyToUserResponse struct {
 	ID       uint   `json:"id"`
 	Username string `json:"username"`
-	Avatar   string `json:"avatar"`
 }
 
 type ReplyCommentRequest struct {
 	Content       string `json:"content" binding:"required"`
 	ReplyToUserID uint   `json:"reply_to_user_id"`
 }
-
-// //==========================================================//
-
-// type ReplyComment struct {
-//     ID        uint      `gorm:"primaryKey"`
-//     CommentID uint      `gorm:"not null"` // Komentar yang direply
-//     UserID    uint      `gorm:"not null"` // User yang reply
-//     Content   string    `gorm:"type:text;not null"`
-//     CreatedAt time.Time
-
-//     Comment Comment   `gorm:"foreignKey:CommentID"`
-//     User    user.User `gorm:"foreignKey:UserID"`
-// }
-
-// type ReplyCommentRequest struct {
-//     CommentID uint   `json:"comment_id" binding:"required"`
-//     Content   string `json:"content" binding:"required"`
-// }
-
-// type ReplyCommentResponse struct {
-//     ID        uint   `json:"id"`
-//     CommentID uint   `json:"comment_id"`
-//     UserID    uint   `json:"user_id"`
-//     Content   string `json:"content"`
-//     CreatedAt string `json:"created_at"`
-// }

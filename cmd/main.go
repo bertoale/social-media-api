@@ -6,6 +6,7 @@ import (
 	"go-sosmed/internal/comment"
 	"go-sosmed/internal/follow"
 	"go-sosmed/internal/like"
+	"go-sosmed/internal/report"
 	"go-sosmed/internal/user"
 	"go-sosmed/pkg/config"
 	"go-sosmed/pkg/middlewares"
@@ -52,6 +53,7 @@ func main() {
 		&like.Like{},
 		&follow.Follow{},
 		&comment.Comment{},
+		&report.Report{},
 	}
 	if err := db.AutoMigrate(tables...); err != nil {
 		log.Fatalf("Database migration failed: %v", err)
@@ -90,14 +92,21 @@ func main() {
 	follow.SetupFollowRoute(r, followController, cfg)
 
 	commentRepo := comment.NewRepository(db)
-	commentService := comment.NewService(commentRepo)
+	commentService := comment.NewService(commentRepo, blogRepo)
 	commentController := comment.NewController(commentService)
 	comment.SetupCommentRoute(r, commentController, cfg)
+
+	reportRepo := report.NewRepository(db)
+	reportService := report.NewService(reportRepo)
+	reportController := report.NewController(reportService)
+	report.SetupRoute(r, reportController, cfg)
 
 	// 404 Not Found
 	r.NoRoute(func(c *gin.Context) {
 		c.JSON(404, gin.H{"error": "Route not found"})
 	})
+
+	// clean.CleanupUnusedUploads(db, "./uploads")
 
 	// === Start Server ===
 	log.Printf("Server running on port %s", cfg.Port)

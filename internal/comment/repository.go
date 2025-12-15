@@ -27,17 +27,6 @@ func (r *repository) Create(comment *Comment) error {
 
 // Delete implements Repository.
 func (r *repository) Delete(comment *Comment) error {
-	// hapus semua child (replies)
-	var replies []Comment
-	r.db.Where("parent_id = ?", comment.ID).Find(&replies)
-
-	for _, reply := range replies {
-		if err := r.Delete(&reply); err != nil {
-			return err
-		}
-	}
-
-	// hapus comment utama
 	return r.db.Delete(comment).Error
 }
 

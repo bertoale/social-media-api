@@ -11,15 +11,36 @@ type Controller struct {
 	service Service
 }
 
-// helper ambil userID dari context
-func getUserID(c *gin.Context) (uint, bool) {
+// ==========================================
+// Helper to get user ID from context
+// ==========================================
+func GetUserIDFromContext(c *gin.Context) (uint, bool) {
 	uid, exists := c.Get("userID")
 	if !exists {
 		return 0, false
 	}
 	return uid.(uint), true
 }
+func ParseBlogID(c *gin.Context) (uint, error) {
+	blogIDParam := c.Param("blog_id")
+	blogID, err := strconv.ParseUint(blogIDParam, 10, 32)
+	if err != nil {
+		return 0, err
+	}
+	return uint(blogID), nil
+}
+func ParseCommentID(c *gin.Context) (uint, error) {
+	idParam := c.Param("comment_id")
+	commentID, err := strconv.ParseUint(idParam, 10, 32)
+	if err != nil {
+		return 0, err
+	}
+	return uint(commentID), nil
+}
 
+// ==========================================
+// Controller Methods
+// ==========================================
 func (ctrl *Controller) CreateComment(c *gin.Context) {
 	var req CommentRequest
 	if err := c.ShouldBind(&req); err != nil {
@@ -27,15 +48,15 @@ func (ctrl *Controller) CreateComment(c *gin.Context) {
 		return
 	}
 
-	userID, ok := getUserID(c)
+	userID, ok := GetUserIDFromContext(c)
 	if !ok {
 		response.Error(c, 401, "user not authenticated")
 		return
 	}
 
-	blogID, err := strconv.ParseUint(c.Param("blog_id"), 10, 32)
+	blogID, err := ParseBlogID(c)
 	if err != nil {
-		response.Error(c, 400, "invalid blog_id")
+		response.Error(c, 400, "invalid blog id")
 		return
 	}
 
@@ -56,9 +77,9 @@ func (ctrl *Controller) CreateComment(c *gin.Context) {
 
 func (ctrl *Controller) ReplyToComment(c *gin.Context) {
 	// Parent comment ID
-	parentID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	parentID, err := ParseCommentID(c)
 	if err != nil {
-		response.Error(c, 400, "invalid parent comment id")
+		response.Error(c, 400, "invalid parent comment ID")
 		return
 	}
 
@@ -70,7 +91,7 @@ func (ctrl *Controller) ReplyToComment(c *gin.Context) {
 	}
 
 	// Ambil user ID dari token
-	userID, ok := getUserID(c)
+	userID, ok := GetUserIDFromContext(c)
 	if !ok {
 		response.Error(c, 401, "user not authenticated")
 		return
@@ -113,8 +134,7 @@ func (ctrl *Controller) ReplyToComment(c *gin.Context) {
 }
 
 func (ctrl *Controller) UpdateComment(c *gin.Context) {
-	idParam := c.Param("id")
-	commentID, err := strconv.ParseUint(idParam, 10, 32)
+	commentID, err := ParseCommentID(c)
 	if err != nil {
 		response.Error(c, 400, "invalid comment ID")
 		return
@@ -126,7 +146,7 @@ func (ctrl *Controller) UpdateComment(c *gin.Context) {
 		return
 	}
 
-	userID, ok := getUserID(c)
+	userID, ok := GetUserIDFromContext(c)
 	if !ok {
 		response.Error(c, 401, "user not authenticated")
 		return
@@ -142,14 +162,13 @@ func (ctrl *Controller) UpdateComment(c *gin.Context) {
 }
 
 func (ctrl *Controller) DeleteComment(c *gin.Context) {
-	idParam := c.Param("id")
-	commentID, err := strconv.ParseUint(idParam, 10, 32)
+	commentID, err := ParseCommentID(c)
 	if err != nil {
 		response.Error(c, 400, "invalid comment ID")
 		return
 	}
 
-	userID, ok := getUserID(c)
+	userID, ok := GetUserIDFromContext(c)
 	if !ok {
 		response.Error(c, 401, "user not authenticated")
 		return
@@ -165,8 +184,7 @@ func (ctrl *Controller) DeleteComment(c *gin.Context) {
 }
 
 func (ctrl *Controller) GetCommentTree(c *gin.Context) {
-	idParam := c.Param("blog_id")
-	blogID, err := strconv.ParseUint(idParam, 10, 32)
+	blogID, err := ParseBlogID(c)
 	if err != nil {
 		response.Error(c, 400, "invalid blog ID")
 		return
@@ -188,8 +206,7 @@ func (ctrl *Controller) GetCommentTree(c *gin.Context) {
 }
 
 func (ctrl *Controller) GetReplies(c *gin.Context) {
-	idParam := c.Param("id")
-	commentID, err := strconv.ParseUint(idParam, 10, 32)
+	commentID, err := ParseCommentID(c)
 	if err != nil {
 		response.Error(c, 400, "invalid comment ID")
 		return

@@ -6,24 +6,30 @@ import (
 	"time"
 )
 
+type StatusType = string
+
+const (
+	StatusPending  StatusType = "pending"
+	StatusReviewed StatusType = "reviewed"
+	StatusResolved StatusType = "resolved"
+	StatusRejected StatusType = "rejected"
+)
+
 type Report struct {
-	ID        uint   `gorm:"primaryKey"`
-	UserID    uint   `gorm:"not null"`
-	BlogID    uint   `gorm:"not null"`
-	Reason    string `gorm:"type:text;not null"`
-	Status    string `gorm:"default:'pending'"` // pending, reviewed, resolved
-	AdminID   *uint  `gorm:"default:null"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID        uint       `gorm:"primaryKey"`
+	UserID    uint       `gorm:"not null"`
+	BlogID    uint       `gorm:"not null"`
+	Reason    string     `gorm:"type:text;not null"`
+	Status    StatusType `gorm:"default:'pending'"`
+	CreatedAt time.Time  `gorm:"autoCreateTime"`
+	UpdatedAt time.Time  `gorm:"autoUpdateTime"`
 	//relations
-	User  user.User  `gorm:"foreignKey:UserID"`
-	Blog  blog.Blog  `gorm:"foreignKey:BlogID"`
-	Admin *user.User `gorm:"foreignKey:AdminID"`
+	User user.User `gorm:"foreignKey:UserID"`
+	Blog blog.Blog `gorm:"foreignKey:BlogID"`
 }
 
 type ReportRequest struct {
-	BlogID uint   `json:"blog_id" binding:"required"`
-	Reason string `json:"reason" binding:"required"`
+	Reason string `json:"reason" form:"reason" binding:"required"`
 }
 
 type ReportResponse struct {
@@ -37,7 +43,6 @@ type ReportResponse struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
-type AdminReviewRequest struct {
-	Status  string `json:"status" binding:"required"` // reviewed, resolved
-	AdminID uint   `json:"admin_id" binding:"required"`
+type UpdateReportRequest struct {
+	Status string `json:"status" form:"status" binding:"required"`
 }
