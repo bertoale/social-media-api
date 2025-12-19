@@ -40,8 +40,8 @@ func GetUserIDFromContext(c *gin.Context) (uint, bool) {
 // @Tags User
 // @Accept json
 // @Produce json
-// @Param data body LoginRequest true "Login data"
-// @Success 200 {object} response.SuccessResponse
+// @Param data body RegisterRequest true "Registration data"
+// @Success 201 {object} response.SuccessResponse
 // @Failure 400 {object} response.ErrorResponse
 // @Failure 401 {object} response.ErrorResponse
 // @Router /api/register [post]
@@ -59,7 +59,17 @@ func (ctrl *Controller) Register(c *gin.Context) {
 	response.Success(c, http.StatusCreated, "registration successful", user)
 }
 
-// Login handles user login
+// Login godoc
+// @Summary Login user
+// @Description Authenticate user and return JWT token
+// @Tags User
+// @Accept json
+// @Produce json
+// @Param data body LoginRequest true "Login credentials"
+// @Success 200 {object} response.SuccessResponse
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 401 {object} response.ErrorResponse
+// @Router /api/login [post]
 func (ctrl *Controller) Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBind(&req); err != nil {
@@ -86,7 +96,18 @@ func (ctrl *Controller) Login(c *gin.Context) {
 	})
 }
 
-// GetUserByID handles fetching user by ID
+// GetUserByID godoc
+// @Summary Get user by ID
+// @Description Retrieve user information by user ID
+// @Tags User
+// @Accept json
+// @Produce json
+// @Param user_id path int true "User ID"
+// @Security BearerAuth
+// @Success 200 {object} response.SuccessResponse
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 404 {object} response.ErrorResponse
+// @Router /api/users/{user_id} [get]
 func (ctrl *Controller) GetUserByID(c *gin.Context) {
 	userID, err := ParseUserID(c)
 	if err != nil {
@@ -101,7 +122,21 @@ func (ctrl *Controller) GetUserByID(c *gin.Context) {
 	response.Success(c, http.StatusOK, "user fetched successfully", user)
 }
 
-// UpdateProfile handles updating user profile
+// UpdateProfile godoc
+// @Summary Update user profile
+// @Description Update authenticated user's profile information
+// @Tags User
+// @Accept multipart/form-data
+// @Produce json
+// @Param username formData string false "Username"
+// @Param bio formData string false "User bio"
+// @Param avatar formData file false "Avatar image"
+// @Security BearerAuth
+// @Success 200 {object} response.SuccessResponse
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 401 {object} response.ErrorResponse
+// @Failure 500 {object} response.ErrorResponse
+// @Router /api/users/me [put]
 func (ctrl *Controller) UpdateProfile(c *gin.Context) {
 	authUserID, ok := GetUserIDFromContext(c)
 	if !ok {
@@ -132,6 +167,10 @@ func (ctrl *Controller) UpdateProfile(c *gin.Context) {
 
 	user, err := ctrl.service.UpdateProfile(authUserID, &req)
 	if err != nil {
+		if err.Error() == "username already in use" || err.Error() == "email already in use" {
+			response.Error(c, http.StatusBadRequest, err.Error())
+			return
+		}
 		response.Error(c, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -142,6 +181,27 @@ func (ctrl *Controller) UpdateProfile(c *gin.Context) {
 	}
 
 	response.Success(c, http.StatusOK, "profile updated successfully", user)
+}
+
+// GetUserByUsername godoc
+// @Summary Get user by username
+// @Description Retrieve user information by username
+// @Tags User
+// @Accept json
+// @Produce json
+// @Param username path string true "Username"
+// @Success 200 {object} response.SuccessResponse
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 404 {object} response.ErrorResponse
+// @Router /api/users/username/{username} [get]
+func (ctrl *Controller) GetUserByUsername(c *gin.Context){
+	username := c.Param("username")
+	user, err := ctrl.service.GetUserByUsername(username)
+	if err != nil {
+		response.Error(c, http.StatusNotFound, err.Error())
+		return
+	}
+	response.Success(c, http.StatusOK, "user fetched successfully", user)
 }
 
 func NewController(s Service, cfg *config.Config) *Controller {

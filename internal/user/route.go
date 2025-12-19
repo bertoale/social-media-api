@@ -16,4 +16,5 @@ func SetupRoute(r *gin.Engine, ctrl *Controller, cfg *config.Config) {
 	protectedAPI.Use(middlewares.Authenticate(cfg))
 	protectedAPI.GET("/users/:user_id", ctrl.GetUserByID)
 	protectedAPI.PUT("/users/me", middlewares.UploadAvatar(), ctrl.UpdateProfile)
+	protectedAPI.GET("/users/username/:username", ctrl.GetUserByUsername)
 }

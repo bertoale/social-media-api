@@ -15,11 +15,21 @@ type Service interface {
 	UpdateProfile(userID uint, req *UpdateProfileRequest) (*UserResponse, error)
 	GetUserByID(userID uint) (*UserResponse, error)
 	GenerateToken(user *User) (string, error)
+	GetUserByUsername(username string) (*UserResponse, error)
 }
 
 type service struct {
 	repo Repository
 	cfg  *config.Config
+}
+
+// GetUserByUsername implements Service.
+func (s *service) GetUserByUsername(username string) (*UserResponse, error) {
+	user, err := s.repo.FindByUsername(username)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user by username: %w", err)
+	}
+	return ToUserResponse(user), nil
 }
 
 type Claims struct {
@@ -114,6 +124,16 @@ func (s *service) UpdateProfile(userID uint, req *UpdateProfileRequest) (*UserRe
 	}
 	if req.Bio != nil {
 		user.Bio = *req.Bio
+	}
+
+	existingUsername, err := s.repo.FindByUsername(user.Username)
+	if err == nil && existingUsername != nil && existingUsername.ID != user.ID {
+		return nil, fmt.Errorf("username already in use")
+	}
+
+	existingEmail, err := s.repo.FindByEmail(user.Email)
+	if err == nil && existingEmail != nil && existingEmail.ID != user.ID {
+		return nil, fmt.Errorf("email already in use")
 	}
 
 	if err := s.repo.Update(user); err != nil {

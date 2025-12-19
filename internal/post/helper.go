@@ -1,9 +1,9 @@
-package blog
+package post
 
 import "go-sosmed/internal/user"
 
-func ToBlogResponse(b *Blog) *BlogResponse {
-	return &BlogResponse{
+func ToPostResponse(b *Post) *PostResponse {
+	return &PostResponse{
 		ID:        b.ID,
 		Title:     b.Title,
 		Content:   b.Content,

@@ -4,7 +4,7 @@ func ToReportResponse(report *Report) *ReportResponse {
 	return &ReportResponse{
 		ID:        report.ID,
 		UserID:    report.UserID,
-		BlogID:    report.BlogID,
+		PostID:    report.PostID,
 		Reason:    report.Reason,
 		Status:    report.Status,
 		CreatedAt: report.CreatedAt,

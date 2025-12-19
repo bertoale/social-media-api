@@ -6,7 +6,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"go-sosmed/internal/blog"
+	"go-sosmed/internal/post"
 	"go-sosmed/internal/user"
 )
 
@@ -66,15 +66,15 @@ func getAllUsedFiles(db *gorm.DB) ([]string, error) {
 		return nil, err
 	}
 
-	var blogImages []string
-	if err := db.Model(&blog.Blog{}).
+	var postImages []string
+	if err := db.Model(&post.Post{}).
 		Where("image != ''").
-		Pluck("image", &blogImages).Error; err != nil {
+		Pluck("image", &postImages).Error; err != nil {
 		return nil, err
 	}
 
 	files = append(files, avatars...)
-	files = append(files, blogImages...)
+	files = append(files, postImages...)
 
 	return files, nil
 }

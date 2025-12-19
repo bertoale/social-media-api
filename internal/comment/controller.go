@@ -21,13 +21,13 @@ func GetUserIDFromContext(c *gin.Context) (uint, bool) {
 	}
 	return uid.(uint), true
 }
-func ParseBlogID(c *gin.Context) (uint, error) {
-	blogIDParam := c.Param("blog_id")
-	blogID, err := strconv.ParseUint(blogIDParam, 10, 32)
+func ParsePostID(c *gin.Context) (uint, error) {
+	postIDParam := c.Param("post_id")
+	postID, err := strconv.ParseUint(postIDParam, 10, 32)
 	if err != nil {
 		return 0, err
 	}
-	return uint(blogID), nil
+	return uint(postID), nil
 }
 func ParseCommentID(c *gin.Context) (uint, error) {
 	idParam := c.Param("comment_id")
@@ -41,6 +41,19 @@ func ParseCommentID(c *gin.Context) (uint, error) {
 // ==========================================
 // Controller Methods
 // ==========================================
+// CreateComment godoc
+// @Summary Create a comment
+// @Description Add a new comment to a post
+// @Tags Comment
+// @Accept json
+// @Produce json
+// @Param post_id path int true "Post ID"
+// @Param data body CommentRequest true "Comment data"
+// @Security BearerAuth
+// @Success 201 {object} response.SuccessResponse
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 401 {object} response.ErrorResponse
+// @Router /api/posts/{post_id}/comments [post]
 func (ctrl *Controller) CreateComment(c *gin.Context) {
 	var req CommentRequest
 	if err := c.ShouldBind(&req); err != nil {
@@ -54,14 +67,14 @@ func (ctrl *Controller) CreateComment(c *gin.Context) {
 		return
 	}
 
-	blogID, err := ParseBlogID(c)
+	postID, err := ParsePostID(c)
 	if err != nil {
-		response.Error(c, 400, "invalid blog id")
+		response.Error(c, 400, "invalid post id")
 		return
 	}
 
 	comment := &Comment{
-		BlogID:  uint(blogID),
+		PostID:  uint(postID),
 		UserID:  userID,
 		Content: req.Content,
 	}
@@ -75,6 +88,21 @@ func (ctrl *Controller) CreateComment(c *gin.Context) {
 	response.Success(c, 201, "comment created successfully", saved)
 }
 
+// ReplyToComment godoc
+// @Summary Reply to a comment
+// @Description Reply to an existing comment (supports nested replies up to 2 levels)
+// @Tags Comment
+// @Accept json
+// @Produce json
+// @Param post_id path int true "Post ID"
+// @Param comment_id path int true "Parent Comment ID"
+// @Param data body ReplyCommentRequest true "Reply data"
+// @Security BearerAuth
+// @Success 201 {object} response.SuccessResponse
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 401 {object} response.ErrorResponse
+// @Failure 404 {object} response.ErrorResponse
+// @Router /api/posts/{post_id}/comments/{comment_id}/reply [post]
 func (ctrl *Controller) ReplyToComment(c *gin.Context) {
 	// Parent comment ID
 	parentID, err := ParseCommentID(c)
@@ -104,9 +132,9 @@ func (ctrl *Controller) ReplyToComment(c *gin.Context) {
 		return
 	}
 
-	// **HARUS** isi blog_id → untuk mencegah FK error
+	// **HARUS** isi post_id → untuk mencegah FK error
 	reply := &Comment{
-		BlogID:  parent.BlogID, // FIX
+		PostID:  parent.PostID, // FIX
 		UserID:  userID,
 		Content: req.Content,
 	}
@@ -133,6 +161,20 @@ func (ctrl *Controller) ReplyToComment(c *gin.Context) {
 	response.Success(c, 201, "reply created successfully", ToCommentResponse(saved))
 }
 
+// UpdateComment godoc
+// @Summary Update a comment
+// @Description Update a comment (only author can update)
+// @Tags Comment
+// @Accept json
+// @Produce json
+// @Param comment_id path int true "Comment ID"
+// @Param data body UpdateCommentRequest true "Update data"
+// @Security BearerAuth
+// @Success 200 {object} response.SuccessResponse
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 401 {object} response.ErrorResponse
+// @Failure 403 {object} response.ErrorResponse
+// @Router /api/comments/{comment_id} [put]
 func (ctrl *Controller) UpdateComment(c *gin.Context) {
 	commentID, err := ParseCommentID(c)
 	if err != nil {
@@ -161,6 +203,19 @@ func (ctrl *Controller) UpdateComment(c *gin.Context) {
 	response.Success(c, 200, "comment updated successfully", updated)
 }
 
+// DeleteComment godoc
+// @Summary Delete a comment
+// @Description Delete a comment (only author can delete)
+// @Tags Comment
+// @Accept json
+// @Produce json
+// @Param comment_id path int true "Comment ID"
+// @Security BearerAuth
+// @Success 200 {object} response.SuccessResponse
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 401 {object} response.ErrorResponse
+// @Failure 403 {object} response.ErrorResponse
+// @Router /api/comments/{comment_id} [delete]
 func (ctrl *Controller) DeleteComment(c *gin.Context) {
 	commentID, err := ParseCommentID(c)
 	if err != nil {
@@ -183,14 +238,26 @@ func (ctrl *Controller) DeleteComment(c *gin.Context) {
 	response.Success(c, 200, "comment deleted successfully", nil)
 }
 
+// GetCommentTree godoc
+// @Summary Get comment tree for a post
+// @Description Retrieve all comments for a post in hierarchical tree structure with nested replies
+// @Tags Comment
+// @Accept json
+// @Produce json
+// @Param post_id path int true "Post ID"
+// @Security BearerAuth
+// @Success 200 {object} response.SuccessResponse
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 401 {object} response.ErrorResponse
+// @Router /api/posts/{post_id}/comments [get]
 func (ctrl *Controller) GetCommentTree(c *gin.Context) {
-	blogID, err := ParseBlogID(c)
+	postID, err := ParsePostID(c)
 	if err != nil {
-		response.Error(c, 400, "invalid blog ID")
+		response.Error(c, 400, "invalid post ID")
 		return
 	}
 
-	tree, err := ctrl.service.GetCommentTree(uint(blogID))
+	tree, err := ctrl.service.GetCommentTree(uint(postID))
 	if err != nil {
 		response.Error(c, 400, err.Error())
 		return
@@ -205,6 +272,19 @@ func (ctrl *Controller) GetCommentTree(c *gin.Context) {
 	response.Success(c, 200, "comments retrieved successfully", resp)
 }
 
+// GetReplies godoc
+// @Summary Get replies to a comment
+// @Description Retrieve all direct replies to a specific comment
+// @Tags Comment
+// @Accept json
+// @Produce json
+// @Param post_id path int true "Post ID"
+// @Param comment_id path int true "Comment ID"
+// @Security BearerAuth
+// @Success 200 {object} response.SuccessResponse
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 401 {object} response.ErrorResponse
+// @Router /api/posts/{post_id}/comments/{comment_id}/replies [get]
 func (ctrl *Controller) GetReplies(c *gin.Context) {
 	commentID, err := ParseCommentID(c)
 	if err != nil {

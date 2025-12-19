@@ -3,7 +3,7 @@ package report
 import "fmt"
 
 type Service interface {
-	CreateReport(userID uint, blogID uint, req *ReportRequest) (*ReportResponse, error)
+	CreateReport(userID uint, postID uint, req *ReportRequest) (*ReportResponse, error)
 	GetReportByID(id uint) (*ReportResponse, error)
 	GetAllReports() ([]*ReportResponse, error)
 	UpdateReportStatus(id uint, status string) (*ReportResponse, error)
@@ -14,10 +14,10 @@ type service struct {
 }
 
 // CreateReport implements Service.
-func (s *service) CreateReport(userID uint, blogID uint, req *ReportRequest) (*ReportResponse, error) {
+func (s *service) CreateReport(userID uint, postID uint, req *ReportRequest) (*ReportResponse, error) {
 	report := &Report{
 		UserID: userID,
-		BlogID: blogID,
+		PostID: postID,
 		Reason: req.Reason,
 		Status: StatusPending,
 	}

@@ -19,7 +19,7 @@ func (r *repository) FindAll() ([]*Report, error) {
 
 	err := r.db.
 		Preload("User").
-		Preload("Blog").
+		Preload("Post").
 		Find(&reports).Error
 
 	if err != nil {
@@ -40,7 +40,7 @@ func (r *repository) FindByID(id uint) (*Report, error) {
 
 	err := r.db.
 		Preload("User").
-		Preload("Blog").
+		Preload("Post").
 		First(&report, id).Error
 
 	if err != nil {

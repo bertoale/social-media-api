@@ -1,7 +1,7 @@
 package like
 
 import (
-	"go-sosmed/internal/blog"
+	"go-sosmed/internal/post"
 
 	"gorm.io/gorm"
 )
@@ -9,8 +9,8 @@ import (
 type Repository interface {
 	Create(like *Like) error
 	Delete(id uint) error
-	GetByUserAndBlog(userID uint, blogID uint) (*Like, error)
-	GetBlogLikedByUser(userID uint) ([]blog.Blog, error)
+	GetByUserAndPost(userID uint, postID uint) (*Like, error)
+	GetPostsLikedByUser(userID uint) ([]post.Post, error)
 }
 
 type repository struct {
@@ -27,23 +27,23 @@ func (r *repository) Delete(id uint) error {
 	return r.db.Delete(&Like{}, id).Error
 }
 
-// GetBlogLikedByUser implements Repository.
-func (r *repository) GetBlogLikedByUser(userID uint) ([]blog.Blog, error) {
-	var blogs []blog.Blog
-	err := r.db.Joins("JOIN likes ON likes.blog_id = blogs.id").
+// GetPostsLikedByUser implements Repository.
+func (r *repository) GetPostsLikedByUser(userID uint) ([]post.Post, error) {
+	var posts []post.Post
+	err := r.db.Joins("JOIN likes ON likes.post_id = posts.id").
 		Where("likes.user_id = ?", userID).
 		Preload("Author").
-		Find(&blogs).Error
+		Find(&posts).Error
 	if err != nil {
 		return nil, err
 	}
-	return blogs, nil
+	return posts, nil
 }
 
-// GetByUserAndBlog implements Repository.
-func (r *repository) GetByUserAndBlog(userID uint, blogID uint) (*Like, error) {
+// GetByUserAndPost implements Repository.
+func (r *repository) GetByUserAndPost(userID uint, postID uint) (*Like, error) {
 	var like Like
-	if err := r.db.Where("user_id = ? AND blog_id = ?", userID, blogID).First(&like).Error; err != nil {
+	if err := r.db.Where("user_id = ? AND post_id = ?", userID, postID).First(&like).Error; err != nil {
 		return nil, err
 	}
 	return &like, nil

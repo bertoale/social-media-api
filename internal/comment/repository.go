@@ -6,14 +6,14 @@ type Repository interface {
 	//main
 	Create(comment *Comment) error
 	GetByID(id uint) (*Comment, error)
-	GetRootCommentsByBlogID(blogID uint) ([]Comment, error)
+	GetRootCommentsByPostID(postID uint) ([]Comment, error)
 	Update(comment *Comment) error
 	Delete(comment *Comment) error
 	//replies
 	GetReplies(parentID uint) ([]Comment, error)
 	//utils
 	IsOwner(commentID uint, userID uint) (bool, error)
-	GetCommentTree(blogID uint) ([]Comment, error)
+	GetCommentTree(postID uint) ([]Comment, error)
 }
 
 type repository struct {
@@ -35,6 +35,8 @@ func (r *repository) GetByID(id uint) (*Comment, error) {
 	var c Comment
 
 	err := r.db.
+		Preload("Post").
+		Preload("Post.Author").
 		Preload("User").
 		Preload("ReplyToUser").
 		Preload("Replies", func(db *gorm.DB) *gorm.DB {
@@ -52,7 +54,7 @@ func (r *repository) GetByID(id uint) (*Comment, error) {
 }
 
 // GetCommentTree implements Repository.
-func (r *repository) GetCommentTree(blogID uint) ([]Comment, error) {
+func (r *repository) GetCommentTree(postID uint) ([]Comment, error) {
 	var comments []Comment
 
 	err := r.db.
@@ -61,7 +63,7 @@ func (r *repository) GetCommentTree(blogID uint) ([]Comment, error) {
 		Preload("Replies").
 		Preload("Replies.User").
 		Preload("Replies.ReplyToUser").
-		Where("blog_id = ?", blogID).
+		Where("post_id = ?", postID).
 		Where("parent_id IS NULL").
 		Find(&comments).Error
 
@@ -79,8 +81,8 @@ func (r *repository) GetReplies(parentID uint) ([]Comment, error) {
 		Where("parent_id = ?", parentID).
 		Preload("User").
 		Preload("ReplyToUser").
-		Preload("Blog").
-		Preload("Blog.Author").
+		Preload("Post").
+		Preload("Post.Author").
 		Find(&replies).Error
 	if err != nil {
 		return nil, err
@@ -88,11 +90,11 @@ func (r *repository) GetReplies(parentID uint) ([]Comment, error) {
 	return replies, nil
 }
 
-// GetRootCommentsByBlogID implements Repository.
-func (r *repository) GetRootCommentsByBlogID(blogID uint) ([]Comment, error) {
+// GetRootCommentsByPostID implements Repository.
+func (r *repository) GetRootCommentsByPostID(postID uint) ([]Comment, error) {
 	var comments []Comment
 	err := r.db.
-		Where("blog_id = ? AND parent_id IS NULL", blogID).
+		Where("post_id = ? AND parent_id IS NULL", postID).
 		Preload("User").
 		Preload("Replies").
 		Find(&comments).Error

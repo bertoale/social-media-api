@@ -3,23 +3,23 @@ package comment
 import (
 	"errors"
 	"fmt"
-	"go-sosmed/internal/blog"
+	"go-sosmed/internal/post"
 )
 
 type Service interface {
 	//main
 	CreateComment(comment *Comment) (*Comment, error)
-	ReplyToComment(userID uint, parentID uint, blogID uint, content string) (*Comment, error)
+	ReplyToComment(userID uint, parentID uint, postID uint, content string) (*Comment, error)
 	UpdateComment(userID uint, commentID uint, req UpdateCommentRequest) (*Comment, error)
 	DeleteComment(userID uint, commentID uint) error
-	GetCommentTree(blogID uint) ([]Comment, error)
+	GetCommentTree(postID uint) ([]Comment, error)
 	GetReplies(commentID uint) ([]Comment, error)
 	GetByID(commentID uint) (*Comment, error)
 }
 
 type service struct {
 	commentRepo Repository
-	blogRepo    blog.Repository
+	postRepo    post.Repository
 }
 
 // GetByID implements Service.
@@ -52,17 +52,17 @@ func (s *service) DeleteComment(userID uint, commentID uint) error {
 	return s.commentRepo.Delete(comment)
 }
 
-func (s *service) GetCommentTree(blogID uint) ([]Comment, error) {
-	blog, err := s.blogRepo.FindByID(blogID)
+func (s *service) GetCommentTree(postID uint) ([]Comment, error) {
+	post, err := s.postRepo.FindByID(postID)
 	if err != nil {
-		return nil, errors.New("blog not found")
+		return nil, errors.New("post not found")
 	}
 
-	if blog.DeletedAt.Valid {
-		return nil, errors.New("blog not found")
+	if post.DeletedAt.Valid {
+		return nil, errors.New("post not found")
 	}
 
-	comments, err := s.commentRepo.GetCommentTree(blogID)
+	comments, err := s.commentRepo.GetCommentTree(postID)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +74,7 @@ func (s *service) GetReplies(commentID uint) ([]Comment, error) {
 	return s.commentRepo.GetReplies(commentID)
 }
 
-func (s *service) ReplyToComment(userID uint, targetID uint, blogID uint, content string) (*Comment, error) {
+func (s *service) ReplyToComment(userID uint, targetID uint, postID uint, content string) (*Comment, error) {
 
 	target, err := s.commentRepo.GetByID(targetID)
 	if err != nil {
@@ -95,7 +95,7 @@ func (s *service) ReplyToComment(userID uint, targetID uint, blogID uint, conten
 	reply := &Comment{
 		Content:       content,
 		UserID:        userID,
-		BlogID:        blogID,
+		PostID:        postID,
 		ParentID:      &parentID,
 		ReplyToUserID: &replyToUserID,
 	}
@@ -137,8 +137,8 @@ func (s *service) UpdateComment(userID uint, commentID uint, req UpdateCommentRe
 	return comment, nil
 }
 
-func NewService(commentRepo Repository, blogRepo blog.Repository) Service {
+func NewService(commentRepo Repository, postRepo post.Repository) Service {
 	return &service{
 		commentRepo: commentRepo,
-		blogRepo:    blogRepo}
+		postRepo:    postRepo}
 }

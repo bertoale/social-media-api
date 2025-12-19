@@ -30,8 +30,8 @@ func GetUserIDFromContext(c *gin.Context) (uint, bool) {
 	return uid, ok
 }
 
-func ParseBlogID(c *gin.Context) (uint, error) {
-	idParam := c.Param("blog_id")
+func ParsePostID(c *gin.Context) (uint, error) {
+	idParam := c.Param("post_id")
 	id, err := strconv.ParseUint(idParam, 10, 32)
 	if err != nil {
 		return 0, err
@@ -39,6 +39,19 @@ func ParseBlogID(c *gin.Context) (uint, error) {
 	return uint(id), nil
 }
 
+// CreateReport godoc
+// @Summary Create a report
+// @Description Report a post for inappropriate content
+// @Tags Report
+// @Accept json
+// @Produce json
+// @Param post_id path int true "Post ID"
+// @Param data body ReportRequest true "Report data"
+// @Security BearerAuth
+// @Success 201 {object} response.SuccessResponse
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 401 {object} response.ErrorResponse
+// @Router /api/posts/{post_id}/reports [post]
 func (ctrl *Controller) CreateReport(c *gin.Context) {
 	var req ReportRequest
 	if err := c.ShouldBind(&req); err != nil {
@@ -50,12 +63,12 @@ func (ctrl *Controller) CreateReport(c *gin.Context) {
 		response.Error(c, http.StatusUnauthorized, "user not authenticated")
 		return
 	}
-	blogID, err := ParseBlogID(c)
+	postID, err := ParsePostID(c)
 	if err != nil {
-		response.Error(c, http.StatusBadRequest, "invalid blog ID: "+err.Error())
+		response.Error(c, http.StatusBadRequest, "invalid post ID: "+err.Error())
 		return
 	}
-	resp, err := ctrl.service.CreateReport(userID, blogID, &req)
+	resp, err := ctrl.service.CreateReport(userID, postID, &req)
 	if err != nil {
 		response.Error(c, http.StatusBadRequest, err.Error())
 		return
@@ -69,6 +82,20 @@ func (ctrl *Controller) CreateReport(c *gin.Context) {
 	)
 }
 
+// GetReportByID godoc
+// @Summary Get report by ID
+// @Description Retrieve a specific report by ID (Admin only)
+// @Tags Report
+// @Accept json
+// @Produce json
+// @Param report_id path int true "Report ID"
+// @Security BearerAuth
+// @Success 200 {object} response.SuccessResponse
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 401 {object} response.ErrorResponse
+// @Failure 403 {object} response.ErrorResponse
+// @Failure 404 {object} response.ErrorResponse
+// @Router /api/reports/{report_id} [get]
 func (ctrl *Controller) GetReportByID(c *gin.Context) {
 	id, err := ParseReportID(c)
 	if err != nil {
@@ -83,6 +110,18 @@ func (ctrl *Controller) GetReportByID(c *gin.Context) {
 	response.Success(c, http.StatusOK, "report retrieved successfully", resp)
 }
 
+// GetAllReports godoc
+// @Summary Get all reports
+// @Description Retrieve all reports (Admin only)
+// @Tags Report
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} response.SuccessResponse
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 401 {object} response.ErrorResponse
+// @Failure 403 {object} response.ErrorResponse
+// @Router /api/reports [get]
 func (ctrl *Controller) GetAllReports(c *gin.Context) {
 	resps, err := ctrl.service.GetAllReports()
 	if err != nil {
@@ -92,6 +131,20 @@ func (ctrl *Controller) GetAllReports(c *gin.Context) {
 	response.Success(c, http.StatusOK, "reports retrieved successfully", resps)
 }
 
+// UpdateReportStatus godoc
+// @Summary Update report status
+// @Description Update the status of a report (Admin only)
+// @Tags Report
+// @Accept json
+// @Produce json
+// @Param report_id path int true "Report ID"
+// @Param data body UpdateReportRequest true "Status update data"
+// @Security BearerAuth
+// @Success 200 {object} response.SuccessResponse
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 401 {object} response.ErrorResponse
+// @Failure 403 {object} response.ErrorResponse
+// @Router /api/reports/{report_id}/status [put]
 func (ctrl *Controller) UpdateReportStatus(c *gin.Context) {
 	id, err := ParseReportID(c)
 	if err != nil {

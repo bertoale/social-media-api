@@ -3,32 +3,32 @@ package like
 import (
 	"errors"
 	"fmt"
-	"go-sosmed/internal/blog"
+	"go-sosmed/internal/post"
 	"go-sosmed/internal/user"
 
 	"gorm.io/gorm"
 )
 
 type Service interface {
-	LikeBlog(userID, blogID uint) error
-	UnlikeBlog(userID, blogID uint) error
-	IsBlogLiked(userID, blogID uint) (bool, error)
-	GetBlogsLikedByUser(userID uint) ([]blog.BlogResponse, error)
+	LikePost(userID, postID uint) error
+	UnlikePost(userID, postID uint) error
+	IsPostLiked(userID, postID uint) (bool, error)
+	GetPostsLikedByUser(userID uint) ([]post.PostResponse, error)
 }
 
 type service struct {
 	repo Repository
 }
 
-func (s *service) GetBlogsLikedByUser(userID uint) ([]blog.BlogResponse, error) {
-	blogs, err := s.repo.GetBlogLikedByUser(userID)
+func (s *service) GetPostsLikedByUser(userID uint) ([]post.PostResponse, error) {
+	posts, err := s.repo.GetPostsLikedByUser(userID)
 	if err != nil {
 		return nil, err
 	}
 
-	var resp []blog.BlogResponse
-	for _, b := range blogs {
-		resp = append(resp, blog.BlogResponse{
+	var resp []post.PostResponse
+	for _, b := range posts {
+		resp = append(resp, post.PostResponse{
 			ID:      b.ID,
 			Title:   b.Title,
 			Content: b.Content,
@@ -44,8 +44,8 @@ func (s *service) GetBlogsLikedByUser(userID uint) ([]blog.BlogResponse, error) 
 	return resp, nil
 }
 
-func (s *service) IsBlogLiked(userID uint, blogID uint) (bool, error) {
-	_, err := s.repo.GetByUserAndBlog(userID, blogID)
+func (s *service) IsPostLiked(userID uint, postID uint) (bool, error) {
+	_, err := s.repo.GetByUserAndPost(userID, postID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return false, nil
@@ -55,8 +55,8 @@ func (s *service) IsBlogLiked(userID uint, blogID uint) (bool, error) {
 	return true, nil
 }
 
-func (s *service) LikeBlog(userID uint, blogID uint) error {
-	existing, err := s.repo.GetByUserAndBlog(userID, blogID)
+func (s *service) LikePost(userID uint, postID uint) error {
+	existing, err := s.repo.GetByUserAndPost(userID, postID)
 	if err == nil && existing != nil {
 		return fmt.Errorf("already liked")
 	}
@@ -65,14 +65,14 @@ func (s *service) LikeBlog(userID uint, blogID uint) error {
 	}
 	like := &Like{
 		UserID: userID,
-		BlogID: blogID,
+		PostID: postID,
 	}
 	return s.repo.Create(like)
 
 }
 
-func (s *service) UnlikeBlog(userID uint, blogID uint) error {
-	like, err := s.repo.GetByUserAndBlog(userID, blogID)
+func (s *service) UnlikePost(userID uint, postID uint) error {
+	like, err := s.repo.GetByUserAndPost(userID, postID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return fmt.Errorf("not liked yet")

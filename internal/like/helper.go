@@ -1,19 +1,21 @@
 package like
 
-import "go-sosmed/internal/blog"
+import (
+	"go-sosmed/internal/post"
+)
 
 func ToLikeResponse(l *Like) *LikeResponse {
 	return &LikeResponse{
 		ID:     l.ID,
 		UserID: l.UserID,
-		BlogID: l.BlogID,
+		PostID: l.PostID,
 	}
 }
 
-func ToBlogsLikedByUserResponse(blogs []blog.Blog) []*blog.BlogResponse {
-	var responses []*blog.BlogResponse
-	for _, b := range blogs {
-		responses = append(responses, blog.ToBlogResponse(&b))
+func ToPostsLikedByUserResponse(posts []post.Post) []*post.PostResponse {
+	var responses []*post.PostResponse
+	for _, b := range posts {
+		responses = append(responses, post.ToPostResponse(&b))
 	}
 	return responses
 }

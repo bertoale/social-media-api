@@ -47,12 +47,12 @@ func (s *service) FollowUser(followerID uint, followingID uint) error {
 
 // GetFollowers implements Service.
 func (s *service) GetFollowers(userID uint) ([]*FollowerResponse, error) {
-	blog, err := s.repo.FindFollowersByUserID(userID)
+	post, err := s.repo.FindFollowersByUserID(userID)
 	if err != nil {
 		return nil, err
 	}
 	var followers []*FollowerResponse
-	for _, f := range blog {
+	for _, f := range post {
 		followers = append(followers, ToFollowerResponse(f))
 	}
 	return followers, nil

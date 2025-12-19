@@ -7,6 +7,29 @@ import (
 	"strings"
 )
 
+
+func normalizeUploadPath(input string) string {
+	if input == "" {
+		return ""
+	}
+
+	// Hilangkan domain jika URL
+	if strings.HasPrefix(input, "http://") || strings.HasPrefix(input, "https://") {
+		if idx := strings.Index(input, "/uploads/"); idx != -1 {
+			input = input[idx:]
+		}
+	}
+
+	// Jika path publik
+	if strings.HasPrefix(input, "/uploads/") {
+		return filepath.Join(".", input)
+	}
+
+	return input
+}
+
+
+
 // DeleteFile menghapus file dari sistem jika ada
 // Parameter:
 //   - filePath: path relatif atau absolut dari file yang akan dihapus
@@ -17,27 +40,19 @@ func DeleteFile(filePath string) error {
 		return nil
 	}
 
-	// Jika path adalah URL lengkap (misal: http://localhost:5000/uploads/file.jpg)
-	// Extract hanya nama file-nya
-	if strings.Contains(filePath, "/uploads/") {
-		parts := strings.Split(filePath, "/uploads/")
-		if len(parts) > 1 {
-			filePath = filepath.Join("uploads", parts[1])
-		}
+	localPath := normalizeUploadPath(filePath)
+
+	if _, err := os.Stat(localPath); os.IsNotExist(err) {
+		return nil
 	}
 
-	// Cek apakah file ada
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		return nil // File tidak ada, tidak perlu dihapus
-	}
-
-	// Hapus file
-	if err := os.Remove(filePath); err != nil {
+	if err := os.Remove(localPath); err != nil {
 		return fmt.Errorf("failed to delete file: %w", err)
 	}
 
 	return nil
 }
+
 
 // FileExists mengecek apakah file ada di sistem
 // Parameter:
@@ -49,32 +64,35 @@ func FileExists(filePath string) bool {
 		return false
 	}
 
-	_, err := os.Stat(filePath)
-	return !os.IsNotExist(err)
+	localPath := normalizeUploadPath(filePath)
+	_, err := os.Stat(localPath)
+
+	return err == nil
 }
+
 
 // GetFilePath mengubah URL menjadi path lokal
 // Parameter:
 //   - fileURL: URL dari file (misal: http://localhost:5000/uploads/file.jpg)
 //
 // Returns: path lokal (misal: uploads/file.jpg)
-func GetFilePath(fileURL string) string {
-	if fileURL == "" {
-		return ""
-	}
+// func GetFilePath(fileURL string) string {
+// 	if fileURL == "" {
+// 		return ""
+// 	}
 
-	// Jika sudah path lokal, return langsung
-	if !strings.HasPrefix(fileURL, "http") {
-		return fileURL
-	}
+// 	// Jika sudah path lokal, return langsung
+// 	if !strings.HasPrefix(fileURL, "http") {
+// 		return fileURL
+// 	}
 
-	// Extract path dari URL
-	if strings.Contains(fileURL, "/uploads/") {
-		parts := strings.Split(fileURL, "/uploads/")
-		if len(parts) > 1 {
-			return filepath.Join("uploads", parts[1])
-		}
-	}
+// 	// Extract path dari URL
+// 	if strings.Contains(fileURL, "/uploads/") {
+// 		parts := strings.Split(fileURL, "/uploads/")
+// 		if len(parts) > 1 {
+// 			return filepath.Join("uploads", parts[1])
+// 		}
+// 	}
 
-	return fileURL
-}
+// 	return fileURL
+// }

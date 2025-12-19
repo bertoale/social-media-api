@@ -1,14 +1,14 @@
 package comment
 
 import (
-	"go-sosmed/internal/blog"
+	"go-sosmed/internal/post"
 	"go-sosmed/internal/user"
 	"time"
 )
 
 type Comment struct {
 	ID            uint      `gorm:"primaryKey"`
-	BlogID        uint      `gorm:"not null"`
+	PostID        uint      `gorm:"not null"`
 	UserID        uint      `gorm:"not null"`
 	ParentID      *uint     `gorm:"index"` // index agar cepat mencari replies
 	ReplyToUserID *uint     `gorm:"index"` // ID user yang direply, bisa null
@@ -17,7 +17,7 @@ type Comment struct {
 	Edited        bool      `gorm:"default:false"`
 
 	// Relations
-	Blog        blog.Blog  `gorm:"foreignKey:BlogID"` // harus kapital
+	Post        post.Post  `gorm:"foreignKey:PostID"`
 	User        user.User  `gorm:"foreignKey:UserID"`
 	ReplyToUser *user.User `gorm:"foreignKey:ReplyToUserID"`
 	Replies     []Comment  `gorm:"foreignKey:ParentID;constraint:OnDelete:CASCADE"`
@@ -46,7 +46,6 @@ type ReplyToUserResponse struct {
 	ID       uint   `json:"id"`
 	Username string `json:"username"`
 }
-
 
 type ReplyCommentRequest struct {
 	Content       string `json:"content" binding:"required"`

@@ -14,18 +14,20 @@ import (
 
 // UploadConfig konfigurasi untuk upload file
 type UploadConfig struct {
-	MaxFileSize   int64    // Ukuran maksimal file dalam bytes (default: 5MB)
-	AllowedTypes  []string // Tipe file yang diizinkan (default: jpg, jpeg, png, gif)
-	UploadDir     string   // Direktori untuk menyimpan file (default: uploads)
-	FileFieldName string   // Nama field di form (default: image)
+	MaxFileSize   int64
+	AllowedTypes  []string
+	UploadDir     string // path di server (./uploads/posts)
+	PublicPath    string // path untuk frontend (/uploads/posts)
+	FileFieldName string
 }
 
 // DefaultUploadConfig memberikan konfigurasi default untuk upload
 func DefaultUploadConfig() UploadConfig {
 	return UploadConfig{
-		MaxFileSize:   5 * 1024 * 1024, // 5MB
+		MaxFileSize:   5 * 1024 * 1024,
 		AllowedTypes:  []string{".jpg", ".jpeg", ".png", ".gif", ".webp"},
 		UploadDir:     "./uploads",
+		PublicPath:    "/uploads",
 		FileFieldName: "image",
 	}
 }
@@ -107,7 +109,7 @@ func UploadSingleFile(config *UploadConfig) gin.HandlerFunc {
 		filename := fmt.Sprintf("%s-%s", timestamp, sanitizedFilename)
 		filePath := filepath.Join(config.UploadDir, filename)
 
-		// Simpan file
+		// simpan file
 		if err := c.SaveUploadedFile(header, filePath); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"success": false,
@@ -117,9 +119,12 @@ func UploadSingleFile(config *UploadConfig) gin.HandlerFunc {
 			return
 		}
 
-		// Set file path ke context untuk digunakan di handler selanjutnya
-		// Format: /uploads/filename.jpg (untuk disimpan ke database)
-		c.Set("uploadedFile", "/uploads/"+filename)
+		// path RELATIF untuk DB & frontend
+		publicURL := filepath.ToSlash(
+			filepath.Join(config.PublicPath, filename),
+		)
+
+		c.Set("uploadedFile", publicURL)
 		c.Set("uploadedFileName", filename)
 		c.Set("uploadedFilePath", filePath)
 
@@ -127,26 +132,24 @@ func UploadSingleFile(config *UploadConfig) gin.HandlerFunc {
 	}
 }
 
-// UploadAvatar middleware khusus untuk upload avatar
 func UploadAvatar() gin.HandlerFunc {
-	config := &UploadConfig{
-		MaxFileSize:   2 * 1024 * 1024, // 2MB untuk avatar
+	return UploadSingleFile(&UploadConfig{
+		MaxFileSize:   2 * 1024 * 1024,
 		AllowedTypes:  []string{".jpg", ".jpeg", ".png", ".webp"},
-		UploadDir:     "./uploads",
+		UploadDir:     "./uploads/avatars",
+		PublicPath:    "/uploads/avatars",
 		FileFieldName: "avatar",
-	}
-	return UploadSingleFile(config)
+	})
 }
 
-// UploadBlogImage middleware khusus untuk upload gambar blog
-func UploadBlogImage() gin.HandlerFunc {
-	config := &UploadConfig{
-		MaxFileSize:   5 * 1024 * 1024, // 5MB untuk blog image
+func UploadPostImage() gin.HandlerFunc {
+	return UploadSingleFile(&UploadConfig{
+		MaxFileSize:   5 * 1024 * 1024,
 		AllowedTypes:  []string{".jpg", ".jpeg", ".png", ".gif", ".webp"},
-		UploadDir:     "./uploads",
+		UploadDir:     "./uploads/posts",
+		PublicPath:    "/uploads/posts",
 		FileFieldName: "image",
-	}
-	return UploadSingleFile(config)
+	})
 }
 
 // ensureUploadDir memastikan folder uploads ada, jika tidak ada akan dibuat

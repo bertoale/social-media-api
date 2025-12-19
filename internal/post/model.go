@@ -1,4 +1,4 @@
-package blog
+package post
 
 import (
 	"go-sosmed/internal/user"
@@ -7,7 +7,7 @@ import (
 	"gorm.io/gorm"
 )
 
-type Blog struct {
+type Post struct {
 	ID        uint           `gorm:"primaryKey"`
 	Title     string         `gorm:"not null"`
 	Content   string         `gorm:"type:text;not null"`
@@ -22,13 +22,13 @@ type Blog struct {
 	Author user.User `gorm:"foreignKey:AuthorID"`
 }
 
-type BlogRequest struct {
+type PostRequest struct {
 	Title   string `json:"title" form:"title" binding:"required"`
 	Content string `json:"content" form:"content" binding:"required"`
 	Image   string `json:"image"`
 }
 
-type BlogResponse struct {
+type PostResponse struct {
 	ID        uint                `json:"id"`
 	Title     string              `json:"title"`
 	Content   string              `json:"content"`
@@ -40,7 +40,7 @@ type BlogResponse struct {
 	Author    user.AuthorResponse `json:"author"`
 }
 
-type UpdateBlogRequest struct {
+type UpdatePostRequest struct {
 	Title    *string `json:"title" form:"title" binding:"omitempty"`
 	Content  *string `json:"content" form:"content" binding:"omitempty"`
 	Archived *bool   `json:"archived" form:"archived" binding:"omitempty"`

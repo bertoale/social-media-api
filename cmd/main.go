@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-	"go-sosmed/internal/blog"
+	_ "go-sosmed/docs"
 	"go-sosmed/internal/comment"
 	"go-sosmed/internal/follow"
 	"go-sosmed/internal/like"
+	"go-sosmed/internal/post"
 	"go-sosmed/internal/report"
 	"go-sosmed/internal/user"
 	"go-sosmed/pkg/config"
@@ -56,10 +57,10 @@ func main() {
 		AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}, AllowHeaders: []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		AllowCredentials: true,
 	}))
-	r.Use(middlewares.GinErrorHandler())
 
 	// === Static Files untuk Upload ===
 	r.Static("/uploads", "./uploads")
+
 
 	// === Database ===
 	if err := config.Connect(cfg); err != nil {
@@ -70,7 +71,7 @@ func main() {
 	db := config.GetDB()
 	tables := []interface{}{
 		&user.User{},
-		&blog.Blog{},
+		&post.Post{},
 		&like.Like{},
 		&follow.Follow{},
 		&comment.Comment{},
@@ -89,8 +90,9 @@ func main() {
 			"timestamp": time.Now(),
 		})
 	})
-		r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
+	r.Use(middlewares.GinErrorHandler())
 
 	//seeder
 	user.SeedAdminUser()
@@ -99,10 +101,10 @@ func main() {
 	userController := user.NewController(userService, cfg)
 	user.SetupRoute(r, userController, cfg)
 
-	blogRepo := blog.NewRepository(db)
-	blogService := blog.NewService(blogRepo)
-	blogController := blog.NewController(blogService)
-	blog.SetupBlogRoute(r, blogController, cfg)
+	postRepo := post.NewRepository(db)
+	postService := post.NewService(postRepo)
+	postController := post.NewController(postService)
+	post.SetupPostRoute(r, postController, cfg)
 
 	likeRepo := like.NewRepository(db)
 	likeService := like.NewService(likeRepo)
@@ -115,7 +117,7 @@ func main() {
 	follow.SetupFollowRoute(r, followController, cfg)
 
 	commentRepo := comment.NewRepository(db)
-	commentService := comment.NewService(commentRepo, blogRepo)
+	commentService := comment.NewService(commentRepo, postRepo)
 	commentController := comment.NewController(commentService)
 	comment.SetupCommentRoute(r, commentController, cfg)
 
