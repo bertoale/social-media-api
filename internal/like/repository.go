@@ -11,10 +11,20 @@ type Repository interface {
 	Delete(id uint) error
 	GetByUserAndPost(userID uint, postID uint) (*Like, error)
 	GetPostsLikedByUser(userID uint) ([]post.Post, error)
+	CountByPostID(postID uint) (int64, error)
 }
 
 type repository struct {
 	db *gorm.DB
+}
+
+// CountByPostID implements Repository.
+func (r *repository) CountByPostID(postID uint) (int64, error) {
+	var count int64
+	if err := r.db.Model(&Like{}).Where("post_id = ?", postID).Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
 }
 
 // Create implements Repository.

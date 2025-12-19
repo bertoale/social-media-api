@@ -307,6 +307,38 @@ func (ctrl *Controller) GetReplies(c *gin.Context) {
 	response.Success(c, 200, "replies retrieved successfully", resp)
 }
 
+// GetCommentCount godoc
+// @Summary Get total comments of a post
+// @Description Get number of comments (including replies) for a post
+// @Tags Comment
+// @Accept json
+// @Produce json
+// @Param post_id path int true "Post ID"
+// @Success 200 {object} response.SuccessResponse
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 500 {object} response.ErrorResponse
+// @Router /api/posts/{post_id}/comments/count [get]
+func (ctrl *Controller) GetCommentCount(c *gin.Context) {
+	postID, err := ParsePostID(c)
+	if err != nil {
+		response.Error(c, 400, "invalid post ID")
+		return
+	}
+
+	total, err := ctrl.service.GetCommentCount(postID)
+	if err != nil {
+		response.Error(c, 500, err.Error())
+		return
+	}
+
+	response.Success(c, 200, "comment count retrieved", gin.H{
+		"post_id":       postID,
+		"total_comment": total,
+	})
+}
+
+
+
 func NewController(service Service) *Controller {
 	return &Controller{service: service}
 }

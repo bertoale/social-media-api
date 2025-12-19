@@ -197,6 +197,37 @@ func (ctrl *Controller) IsPostLiked(c *gin.Context) {
 	response.Success(c, http.StatusOK, "like status retrieved successfully", gin.H{"liked": liked})
 }
 
+// GetPostLikeCount godoc
+// @Summary Get total likes of a post
+// @Description Get number of likes for a specific post
+// @Tags Like
+// @Accept json
+// @Produce json
+// @Param post_id path int true "Post ID"
+// @Success 200 {object} response.SuccessResponse
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 500 {object} response.ErrorResponse
+// @Router /api/posts/{post_id}/likes/count [get]
+func (ctrl *Controller) GetPostLikeCount(c *gin.Context) {
+	postID, err := ParsePostID(c)
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, "invalid post ID")
+		return
+	}
+
+	total, err := ctrl.service.GetPostLikeCount(postID)
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	response.Success(c, http.StatusOK, "like count retrieved", gin.H{
+		"post_id":    postID,
+		"total_like": total,
+	})
+}
+
+
 func NewController(service Service) *Controller {
 	return &Controller{service: service}
 }

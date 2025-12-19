@@ -15,11 +15,17 @@ type Service interface {
 	GetCommentTree(postID uint) ([]Comment, error)
 	GetReplies(commentID uint) ([]Comment, error)
 	GetByID(commentID uint) (*Comment, error)
+	GetCommentCount(postID uint) (int64, error)
 }
 
 type service struct {
 	commentRepo Repository
 	postRepo    post.Repository
+}
+
+// GetCommentCount implements Service.
+func (s *service) GetCommentCount(postID uint) (int64, error) {
+	return s.commentRepo.CountByPostID(postID)
 }
 
 // GetByID implements Service.

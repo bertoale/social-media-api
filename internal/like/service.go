@@ -14,10 +14,16 @@ type Service interface {
 	UnlikePost(userID, postID uint) error
 	IsPostLiked(userID, postID uint) (bool, error)
 	GetPostsLikedByUser(userID uint) ([]post.PostResponse, error)
+	GetPostLikeCount(postID uint) (int64, error)
 }
 
 type service struct {
 	repo Repository
+}
+
+// GetPostLikeCount implements Service.
+func (s *service) GetPostLikeCount(postID uint) (int64, error) {
+	return s.repo.CountByPostID(postID)
 }
 
 func (s *service) GetPostsLikedByUser(userID uint) ([]post.PostResponse, error) {
