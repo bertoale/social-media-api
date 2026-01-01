@@ -18,6 +18,10 @@ type Post struct {
 	CreatedAt time.Time      `gorm:"autoCreateTime"`
 	UpdatedAt time.Time      `gorm:"autoUpdateTime"`
 	DeletedAt gorm.DeletedAt `gorm:"index"`
+	// computed fields
+	LikeCount    int64 `gorm:"->"` // read-only
+	CommentCount int64 `gorm:"->"`
+	IsLiked      bool  `gorm:"->"`
 	//relation below
 	Author user.User `gorm:"foreignKey:AuthorID"`
 }
@@ -29,15 +33,18 @@ type PostRequest struct {
 }
 
 type PostResponse struct {
-	ID        uint                `json:"id"`
-	Title     string              `json:"title"`
-	Content   string              `json:"content"`
-	Image     string              `json:"image"`
-	Archived  bool                `json:"archived"`
-	Edited    bool                `json:"edited"`
-	AuthorID  uint                `json:"author_id"`
-	CreatedAt time.Time           `json:"created_at"`
-	Author    user.AuthorResponse `json:"author"`
+	ID           uint                `json:"id"`
+	Title        string              `json:"title"`
+	Content      string              `json:"content"`
+	Image        string              `json:"image"`
+	Archived     bool                `json:"archived"`
+	Edited       bool                `json:"edited"`
+	AuthorID     uint                `json:"author_id"`
+	CreatedAt    time.Time           `json:"created_at"`
+	Author       user.AuthorResponse `json:"author"`
+	LikeCount    int                 `json:"like_count"`
+	CommentCount int                 `json:"comment_count"`
+	IsLiked      bool                `json:"is_liked"`
 }
 
 type UpdatePostRequest struct {

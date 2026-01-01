@@ -9,7 +9,6 @@ type Repository interface {
 	GetRootCommentsByPostID(postID uint) ([]Comment, error)
 	Update(comment *Comment) error
 	Delete(comment *Comment) error
-	CountByPostID(postID uint) (int64, error)
 	//replies
 	GetReplies(parentID uint) ([]Comment, error)
 	//utils
@@ -19,18 +18,6 @@ type Repository interface {
 
 type repository struct {
 	db *gorm.DB
-}
-
-// CountByPostID implements Repository.
-func (r *repository) CountByPostID(postID uint) (int64, error) {
-	var count int64
-	err := r.db.Model(&Comment{}).
-		Where("post_id = ?", postID).
-		Count(&count).Error
-	if err != nil {
-		return 0, err
-	}
-	return count, nil
 }
 
 // Create implements Repository.

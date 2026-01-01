@@ -8,6 +8,7 @@ import (
 type Service interface {
 	Create(req *PostRequest, authorID uint) (*PostResponse, error)
 	GetByID(postID uint) (*PostResponse, error)
+	GetDetailByID(postID, userID uint) (*PostResponse, error)
 	Update(userID, postID uint, req *UpdatePostRequest) (*PostResponse, error)
 	Delete(postID, UserID uint, userRole string) error
 	GetAll() ([]*PostResponse, error)
@@ -17,10 +18,34 @@ type Service interface {
 	Archive(postID, userID uint) error
 	Unarchive(postID, userID uint) error
 	GetPostsByFollowing(userID uint) ([]*PostResponse, error)
+	GetLikedPostsByUser(userID uint) ([]*PostResponse, error)
 }
 
 type service struct {
 	repo Repository
+}
+
+// GetLikedPostsByUser implements Service.
+func (s *service) GetLikedPostsByUser(userID uint) ([]*PostResponse, error) {
+	posts, err := s.repo.FindPostsLikedByUser(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	var responses []*PostResponse
+	for _, post := range posts {
+		responses = append(responses, ToPostResponse(&post))
+	}
+	return responses, nil
+}
+
+// GetDetailByID implements Service.
+func (s *service) GetDetailByID(postID uint, userID uint) (*PostResponse, error) {
+	post, err := s.repo.FindDetailByID(postID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("post not found: %w", err)
+	}
+	return ToPostResponse(post), nil
 }
 
 // GetPostsByFollowing implements Service.
@@ -38,13 +63,13 @@ func (s *service) GetPostsByFollowing(userID uint) ([]*PostResponse, error) {
 
 // GetPostsByCurrentUser implements Service.
 func (s *service) GetPostsByCurrentUser(authorID uint) ([]*PostResponse, error) {
-	posts, err := s.repo.FindAll()
+	posts, err := s.repo.FindByCurrentUser(authorID, 0)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve posts: %w", err)
 	}
 	var responses []*PostResponse
 	for _, b := range posts {
-		if b.AuthorID == authorID && !b.Archived {
+		if b.AuthorID == authorID {
 			responses = append(responses, ToPostResponse(b))
 		}
 	}
@@ -144,7 +169,7 @@ func (s *service) GetAll() ([]*PostResponse, error) {
 
 // GetPostsByAuthor implements Service.
 func (s *service) GetPostsByAuthor(authorID uint) ([]*PostResponse, error) {
-	posts, err := s.repo.FindAllUnarchived()
+	posts, err := s.repo.FindByCurrentUser(authorID, 0)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve posts: %w", err)
 	}

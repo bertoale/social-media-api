@@ -15,5 +15,4 @@ func SetupLikeRoute(r *gin.Engine, ctrl *Controller, cfg *config.Config) {
 	api.GET("/posts/:post_id/like/status", ctrl.IsPostLiked)
 	api.GET("/users/:user_id/likes", ctrl.GetPostLikedByUser)
 	api.GET("/users/me/likes", ctrl.GetPostLikedByCurrentUser)
-	api.GET("/posts/:post_id/like/count", ctrl.GetPostLikeCount)
 }

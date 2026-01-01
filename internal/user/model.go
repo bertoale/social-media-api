@@ -15,6 +15,10 @@ type User struct {
 	Bio      string   `gorm:"type:text"`
 	Avatar   string   `gorm:"type:text"`
 	Role     RoleType `gorm:"default:'user'"`
+	//computed fields
+	FollowersCount int64 `gorm:"-:migration;<-:false"` // ignored by GORM migrations and write operations
+	FollowingCount int64 `gorm:"-:migration;<-:false"` // ignored by GORM migrations and write operations
+	IsFollowed     bool  `gorm:"-:migration;<-:false"` // ignored by GORM migrations and write operations
 }
 
 type RegisterRequest struct {
@@ -40,11 +44,14 @@ type UpdateProfileRequest struct {
 }
 
 type UserResponse struct {
-	ID       uint   `json:"id"`
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	Bio      string `json:"bio"`
-	Avatar   string `json:"avatar"`
+	ID             uint   `json:"id"`
+	Username       string `json:"username"`
+	Email          string `json:"email"`
+	Bio            string `json:"bio"`
+	Avatar         string `json:"avatar"`
+	FollowersCount int64  `json:"followers_count"`
+	FollowingCount int64  `json:"following_count"`
+	IsFollowed     bool   `json:"is_followed"`
 }
 
 type AuthorResponse struct {

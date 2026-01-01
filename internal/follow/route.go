@@ -14,6 +14,4 @@ func SetupFollowRoute(r *gin.Engine, ctrl *Controller, cfg *config.Config) {
 	api.POST("/:following_id", ctrl.FollowUser)
 	api.DELETE("/:following_id", ctrl.UnfollowUser)
 
-	api.GET("/me/following", ctrl.GetFollowing)
-	api.GET("/me/followers", ctrl.GetFollowers)
 }

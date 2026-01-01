@@ -54,13 +54,12 @@ func main() {
 	}))
 	r.Use(cors.New(cors.Config{
 		AllowOrigins: []string{cfg.CorsOrigin},
-		AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}, AllowHeaders: []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"}, AllowHeaders: []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		AllowCredentials: true,
 	}))
 
 	// === Static Files untuk Upload ===
 	r.Static("/uploads", "./uploads")
-
 
 	// === Database ===
 	if err := config.Connect(cfg); err != nil {

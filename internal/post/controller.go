@@ -165,7 +165,6 @@ func (ctrl *Controller) Delete(c *gin.Context) {
 	response.Success(c, http.StatusOK, "post deleted successfully", nil)
 }
 
-
 // GetAll godoc
 // @Summary Get all unarchived posts
 // @Description Retrieve all unarchived posts
@@ -349,6 +348,7 @@ func (ctrl *Controller) Unarchive(c *gin.Context) {
 
 	response.Success(c, http.StatusOK, "post unarchived successfully", nil)
 }
+
 // GetPostsByFollowing godoc
 // @Summary Get posts by users the current user is following
 // @Description Retrieve all unarchived posts created by users that the authenticated user is following
@@ -374,6 +374,68 @@ func (ctrl *Controller) GetPostsByFollowing(c *gin.Context) {
 	}
 
 	response.Success(c, http.StatusOK, "posts retrieved successfully", posts)
+}
+
+// GetDetailByID godoc
+// @Summary Get detailed post by ID
+// @Description Retrieve a post by its ID with additional details (e.g., comments, likes)
+// @Tags Post
+// @Accept json
+// @Produce json
+// @Param post_id path int true "Post ID"
+// @Security BearerAuth
+// @Success 200 {object} response.SuccessResponse
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 401 {object} response.ErrorResponse
+// @Failure 404 {object} response.ErrorResponse
+// @Router /api/posts/{post_id}/detail [get]
+func (ctrl *Controller) GetDetailByID(c *gin.Context) {
+	postID, err := ParsePostID(c)
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, "invalid post ID")
+		return
+	}
+
+	userID, ok := GetUserIDFromContext(c)
+	if !ok {
+		response.Error(c, http.StatusUnauthorized, "user not authenticated")
+		return
+	}
+
+	post, err := ctrl.service.GetDetailByID(postID, userID)
+	if err != nil {
+		response.Error(c, http.StatusNotFound, err.Error())
+		return
+	}
+
+	response.Success(c, http.StatusOK, "post fetched successfully", post)
+}
+
+// GetLikedPosts godoc
+// @Summary Get posts liked by current user
+// @Description Retrieve all posts liked by the authenticated user
+// @Tags Post
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} response.SuccessResponse
+// @Failure 401 {object} response.ErrorResponse
+// @Failure 500 {object} response.ErrorResponse
+// @Router /api/posts/liked [get]
+func (ctrl *Controller) GetLikedPosts(c *gin.Context) {
+	userID, ok := GetUserIDFromContext(c)
+	if !ok {
+		response.Error(c, http.StatusUnauthorized, "user not authenticated")
+		return
+	}
+
+	posts, err := ctrl.service.GetLikedPostsByUser(userID)
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	response.Success(c, http.StatusOK, "liked posts", posts)
 }
 
 func NewController(service Service) *Controller {

@@ -1835,7 +1835,6 @@ var SwaggerInfo = &swag.Spec{
 	Description:      "API for Golang Social Media Application",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
-
 }
 
 func init() {

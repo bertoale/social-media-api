@@ -7,7 +7,6 @@ import (
 	"strings"
 )
 
-
 func normalizeUploadPath(input string) string {
 	if input == "" {
 		return ""
@@ -27,8 +26,6 @@ func normalizeUploadPath(input string) string {
 
 	return input
 }
-
-
 
 // DeleteFile menghapus file dari sistem jika ada
 // Parameter:
@@ -53,7 +50,6 @@ func DeleteFile(filePath string) error {
 	return nil
 }
 
-
 // FileExists mengecek apakah file ada di sistem
 // Parameter:
 //   - filePath: path dari file yang akan dicek
@@ -69,7 +65,6 @@ func FileExists(filePath string) bool {
 
 	return err == nil
 }
-
 
 // GetFilePath mengubah URL menjadi path lokal
 // Parameter:

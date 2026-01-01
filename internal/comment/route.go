@@ -22,5 +22,4 @@ func SetupCommentRoute(r *gin.Engine, ctrl *Controller, cfg *config.Config) {
 	// Comment actions
 	api.PUT("/comments/:comment_id", ctrl.UpdateComment)
 	api.DELETE("/comments/:comment_id", ctrl.DeleteComment)
-	api.GET("/posts/:post_id/comments/count", ctrl.GetCommentCount)
 }

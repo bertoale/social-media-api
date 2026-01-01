@@ -3,6 +3,7 @@ package user
 import (
 	"fmt"
 	"go-sosmed/pkg/config"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -14,13 +15,104 @@ type Service interface {
 	Login(req *LoginRequest) (string, *UserResponse, error)
 	UpdateProfile(userID uint, req *UpdateProfileRequest) (*UserResponse, error)
 	GetUserByID(userID uint) (*UserResponse, error)
+	GetExploreUsers(currentUserID uint, limit, offset int) ([]UserResponse, error)
+	GetUserDetailByUsername(username string, currentUserID uint) (*UserResponse, error)
 	GenerateToken(user *User) (string, error)
 	GetUserByUsername(username string) (*UserResponse, error)
+	SearchUser(keyword string, currentUserID uint) ([]*UserResponse, error)
+	GetUserFollowers(
+		currentUserID uint,
+		limit, offset int,
+	) ([]*UserResponse, error)
+	GetUserFollowings(
+		currentUserID uint,
+		limit, offset int,
+	) ([]*UserResponse, error)
 }
 
 type service struct {
 	repo Repository
 	cfg  *config.Config
+}
+
+// GetUserFollowers implements Service.
+func (s *service) GetUserFollowers(currentUserID uint, limit int, offset int) ([]*UserResponse, error) {
+	followers, err := s.repo.FindFollowerByUsers(currentUserID, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user followers: %w", err)
+	}
+
+	var responses []*UserResponse
+	for _, u := range followers {
+		responses = append(responses, ToUserResponse(u))
+	}
+
+	return responses, nil
+}
+
+// GetUserFollowings implements Service.
+func (s *service) GetUserFollowings(currentUserID uint, limit int, offset int) ([]*UserResponse, error) {
+	followings, err := s.repo.FindFollowingUsers(currentUserID, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user followings: %w", err)
+	}
+
+	var responses []*UserResponse
+	for _, u := range followings {
+		responses = append(responses, ToUserResponse(u))
+	}
+
+	return responses, nil
+}
+
+// SearchByUsername implements Service.
+func (s *service) SearchUser(keyword string, currentUserID uint) ([]*UserResponse, error) {
+	// 1. validasi keyword
+	keyword = strings.TrimSpace(keyword)
+	if len(keyword) < 1 {
+		return []*UserResponse{}, nil
+	}
+
+	// 2. ambil data dari repo
+	users, err := s.repo.SearchByUsername(keyword, currentUserID, 10)
+	if err != nil {
+		return nil, err
+	}
+
+	// 3. mapping ke response
+	var responses []*UserResponse
+	for _, u := range users {
+		// opsional: skip diri sendiri
+		if u.ID == currentUserID {
+			continue
+		}
+
+		responses = append(responses, ToUserResponse(u))
+	}
+
+	return responses, nil
+}
+
+// GetUserDetailByID implements Service.
+func (s *service) GetUserDetailByUsername(username string, currentUserID uint) (*UserResponse, error) {
+	user, err := s.repo.FindUserDetailByUsername(username, currentUserID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user detail by ID: %w", err)
+	}
+	return ToUserResponse(user), nil
+}
+
+// GetExploreUsers implements Service.
+func (s *service) GetExploreUsers(currentUserID uint, limit int, offset int) ([]UserResponse, error) {
+	users, err := s.repo.FindExploreUsers(currentUserID, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get explore users: %w", err)
+	}
+	var responses []UserResponse
+	for _, u := range users {
+		responses = append(responses, *ToUserResponse(&u))
+	}
+	return responses, nil
 }
 
 // GetUserByUsername implements Service.

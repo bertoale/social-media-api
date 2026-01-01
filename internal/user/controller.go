@@ -1,6 +1,7 @@
 package user
 
 import (
+	"fmt"
 	"go-sosmed/pkg/config"
 	"go-sosmed/pkg/response"
 	"net/http"
@@ -24,6 +25,13 @@ func ParseUserID(c *gin.Context) (uint, error) {
 		return 0, err
 	}
 	return uint(id), nil
+}
+func ParseUsername(c *gin.Context) (string, error) {
+	usernameParam := c.Param("username")
+	if usernameParam == "" {
+		return "", fmt.Errorf("username cannot be empty")
+	}
+	return usernameParam, nil
 }
 func GetUserIDFromContext(c *gin.Context) (uint, bool) {
 	userID, exists := c.Get("userID")
@@ -92,7 +100,7 @@ func (ctrl *Controller) Login(c *gin.Context) {
 	)
 	response.Success(c, http.StatusOK, "login successful", gin.H{
 		"user":  user,
-		"token": token,
+		// "token": token,
 	})
 }
 
@@ -194,7 +202,7 @@ func (ctrl *Controller) UpdateProfile(c *gin.Context) {
 // @Failure 400 {object} response.ErrorResponse
 // @Failure 404 {object} response.ErrorResponse
 // @Router /api/users/username/{username} [get]
-func (ctrl *Controller) GetUserByUsername(c *gin.Context){
+func (ctrl *Controller) GetUserByUsername(c *gin.Context) {
 	username := c.Param("username")
 	user, err := ctrl.service.GetUserByUsername(username)
 	if err != nil {
@@ -202,6 +210,189 @@ func (ctrl *Controller) GetUserByUsername(c *gin.Context){
 		return
 	}
 	response.Success(c, http.StatusOK, "user fetched successfully", user)
+}
+
+// GetCurrentUser godoc
+// @Summary Get current authenticated user
+// @Description Retrieve information of the currently authenticated user
+// @Tags User
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} response.SuccessResponse
+// @Failure 401 {object} response.ErrorResponse
+// @Failure 500 {object} response.ErrorResponse
+// @Router /api/users/me [get]
+func (ctrl *Controller) GetCurrentUser(c *gin.Context) {
+	authUserID, ok := GetUserIDFromContext(c)
+	if !ok {
+		response.Error(c, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	user, err := ctrl.service.GetUserByID(authUserID)
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, "user not found")
+		return
+	}
+
+	response.Success(c, http.StatusOK, "current user fetched successfully", user)
+}
+
+// GetCurrentUser godoc
+// @Summary Get current authenticated user
+// @Description Retrieve information of the currently authenticated user
+// @Tags User
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} response.SuccessResponse
+// @Failure 401 {object} response.ErrorResponse
+// @Failure 500 {object} response.ErrorResponse
+// @Router /api/users/me [get]
+func (ctrl *Controller) GetExploreUsers(c *gin.Context) {
+	authUserID, ok := GetUserIDFromContext(c)
+	if !ok {
+		response.Error(c, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	limitStr := c.DefaultQuery("limit", "10")
+	offsetStr := c.DefaultQuery("offset", "0")
+
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit <= 0 {
+		response.Error(c, http.StatusBadRequest, "invalid limit parameter")
+		return
+	}
+
+	offset, err := strconv.Atoi(offsetStr)
+	if err != nil || offset < 0 {
+		response.Error(c, http.StatusBadRequest, "invalid offset parameter")
+		return
+	}
+
+	users, err := ctrl.service.GetExploreUsers(authUserID, limit, offset)
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	response.Success(c, http.StatusOK, "explore users fetched successfully", users)
+}
+
+// GetUserDetailByID godoc
+// @Summary Get user detail by ID
+// @Description Retrieve detailed user information by user ID
+// @Tags User
+// @Accept json
+// @Produce json
+// @Param user_id path int true "User ID"
+// @Security BearerAuth
+// @Success 200 {object} response.SuccessResponse
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 401 {object} response.ErrorResponse
+// @Failure 404 {object} response.ErrorResponse
+// @Router /api/users/{user_id}/detail [get]
+func (ctrl *Controller) GetUserDetailByUsername(c *gin.Context) {
+	username, err := ParseUsername(c)
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, "invalid user ID")
+		return
+	}
+
+	authUserID, ok := GetUserIDFromContext(c)
+	if !ok {
+		response.Error(c, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	user, err := ctrl.service.GetUserDetailByUsername(username, authUserID)
+	if err != nil {
+		response.Error(c, http.StatusNotFound, err.Error())
+		return
+	}
+
+	response.Success(c, http.StatusOK, "user detail fetched successfully", user)
+}
+
+func (ctrl *Controller) SearchUser(c *gin.Context) {
+	keyword := c.Query("q")
+	authUserID, ok := GetUserIDFromContext(c)
+	if !ok {
+		response.Error(c, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	users, err := ctrl.service.SearchUser(keyword, authUserID)
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	response.Success(c, http.StatusOK, "users fetched successfully", users)
+}
+
+func (ctrl *Controller) GetUserFollowers(c *gin.Context) {
+	authUserID, ok := GetUserIDFromContext(c)
+	if !ok {
+		response.Error(c, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	limitStr := c.DefaultQuery("limit", "50")
+	offsetStr := c.DefaultQuery("offset", "0")
+
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit <= 0 {
+		response.Error(c, http.StatusBadRequest, "invalid limit parameter")
+		return
+	}
+
+	offset, err := strconv.Atoi(offsetStr)
+	if err != nil || offset < 0 {
+		response.Error(c, http.StatusBadRequest, "invalid offset parameter")
+		return
+	}
+
+	users, err := ctrl.service.GetUserFollowers(authUserID, limit, offset)
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	response.Success(c, http.StatusOK, "user followers fetched successfully", users)
+}
+
+func (ctrl *Controller) GetUserFollowings(c *gin.Context) {
+	authUserID, ok := GetUserIDFromContext(c)
+	if !ok {
+		response.Error(c, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	limitStr := c.DefaultQuery("limit", "50")
+	offsetStr := c.DefaultQuery("offset", "0")
+
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit <= 0 {
+		response.Error(c, http.StatusBadRequest, "invalid limit parameter")
+		return
+	}
+
+	offset, err := strconv.Atoi(offsetStr)
+	if err != nil || offset < 0 {
+		response.Error(c, http.StatusBadRequest, "invalid offset parameter")
+		return
+	}
+
+	users, err := ctrl.service.GetUserFollowings(authUserID, limit, offset)
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	response.Success(c, http.StatusOK, "user followings fetched successfully", users)
 }
 
 func NewController(s Service, cfg *config.Config) *Controller {

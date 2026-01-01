@@ -11,20 +11,10 @@ type Repository interface {
 	Delete(id uint) error
 	GetByUserAndPost(userID uint, postID uint) (*Like, error)
 	GetPostsLikedByUser(userID uint) ([]post.Post, error)
-	CountByPostID(postID uint) (int64, error)
 }
 
 type repository struct {
 	db *gorm.DB
-}
-
-// CountByPostID implements Repository.
-func (r *repository) CountByPostID(postID uint) (int64, error) {
-	var count int64
-	if err := r.db.Model(&Like{}).Where("post_id = ?", postID).Count(&count).Error; err != nil {
-		return 0, err
-	}
-	return count, nil
 }
 
 // Create implements Repository.
@@ -38,15 +28,29 @@ func (r *repository) Delete(id uint) error {
 }
 
 // GetPostsLikedByUser implements Repository.
-func (r *repository) GetPostsLikedByUser(userID uint) ([]post.Post, error) {
+func (r *repository) GetPostsLikedByUser(
+	userID uint,
+) ([]post.Post, error) {
+
 	var posts []post.Post
-	err := r.db.Joins("JOIN likes ON likes.post_id = posts.id").
-		Where("likes.user_id = ?", userID).
+
+	err := r.db.
+		Table("posts").
+		Select(`
+			posts.*,
+			(SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.id) AS like_count,
+			(SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) AS comment_count,
+			TRUE AS is_liked
+		`).
+		Joins("JOIN likes ON likes.post_id = posts.id").
+		Where("likes.user_id = ? AND posts.archived = ?", userID, false).
 		Preload("Author").
 		Find(&posts).Error
+
 	if err != nil {
 		return nil, err
 	}
+
 	return posts, nil
 }
 

@@ -16,31 +16,34 @@ const (
 )
 
 type Report struct {
-	ID        uint       `gorm:"primaryKey"`
-	UserID    uint       `gorm:"not null"`
-	PostID    uint       `gorm:"not null"`
-	Reason    string     `gorm:"type:text;not null"`
-	Status    StatusType `gorm:"default:'pending'"`
-	CreatedAt time.Time  `gorm:"autoCreateTime"`
-	UpdatedAt time.Time  `gorm:"autoUpdateTime"`
+	ID          uint       `gorm:"primaryKey"`
+	UserID      uint       `gorm:"not null"`
+	PostID      uint       `gorm:"not null"`
+	Reason      string     `gorm:"type:text;not null"`
+	Description string     `gorm:"type:text"`
+	Status      StatusType `gorm:"default:'pending'"`
+	CreatedAt   time.Time  `gorm:"autoCreateTime"`
+	UpdatedAt   time.Time  `gorm:"autoUpdateTime"`
 	//relations
 	User user.User `gorm:"foreignKey:UserID"`
 	Post post.Post `gorm:"foreignKey:PostID"`
 }
 
 type ReportRequest struct {
-	Reason string `json:"reason" form:"reason" binding:"required"`
+	Reason      string `json:"reason" form:"reason" binding:"required"`
+	Description string `json:"description" form:"description"`
 }
 
 type ReportResponse struct {
-	ID        uint      `json:"id"`
-	UserID    uint      `json:"user_id"`
-	PostID    uint      `json:"post_id"`
-	Reason    string    `json:"reason"`
-	Status    string    `json:"status"`
-	AdminID   *uint     `json:"admin_id,omitempty"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID          uint      `json:"id"`
+	UserID      uint      `json:"user_id"`
+	PostID      uint      `json:"post_id"`
+	Reason      string    `json:"reason"`
+	Description string    `json:"description"`
+	Status      string    `json:"status"`
+	AdminID     *uint     `json:"admin_id,omitempty"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 type UpdateReportRequest struct {

@@ -16,10 +16,11 @@ type service struct {
 // CreateReport implements Service.
 func (s *service) CreateReport(userID uint, postID uint, req *ReportRequest) (*ReportResponse, error) {
 	report := &Report{
-		UserID: userID,
-		PostID: postID,
-		Reason: req.Reason,
-		Status: StatusPending,
+		UserID:      userID,
+		PostID:      postID,
+		Reason:      req.Reason,
+		Description: req.Description,
+		Status:      StatusPending,
 	}
 
 	if err := s.repo.Create(report); err != nil {

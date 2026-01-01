@@ -14,7 +14,12 @@ func SetupRoute(r *gin.Engine, ctrl *Controller, cfg *config.Config) {
 
 	protectedAPI := r.Group("/api")
 	protectedAPI.Use(middlewares.Authenticate(cfg))
-	protectedAPI.GET("/users/:user_id", ctrl.GetUserByID)
 	protectedAPI.PUT("/users/me", middlewares.UploadAvatar(), ctrl.UpdateProfile)
-	protectedAPI.GET("/users/username/:username", ctrl.GetUserByUsername)
+	protectedAPI.GET("/users/me", ctrl.GetCurrentUser)
+	protectedAPI.GET("/users/username/:username", ctrl.GetUserDetailByUsername)
+
+	protectedAPI.GET("/users/explore", ctrl.GetExploreUsers)
+	protectedAPI.GET("/users/search", ctrl.SearchUser)
+	protectedAPI.GET("/users/followers", ctrl.GetUserFollowers)
+	protectedAPI.GET("/users/followings", ctrl.GetUserFollowings)
 }
