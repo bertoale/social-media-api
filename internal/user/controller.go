@@ -99,7 +99,7 @@ func (ctrl *Controller) Login(c *gin.Context) {
 		true,
 	)
 	response.Success(c, http.StatusOK, "login successful", gin.H{
-		"user":  user,
+		"user": user,
 		// "token": token,
 	})
 }
@@ -230,7 +230,7 @@ func (ctrl *Controller) GetCurrentUser(c *gin.Context) {
 		return
 	}
 
-	user, err := ctrl.service.GetUserByID(authUserID)
+	user, err := ctrl.service.GetCurrentUserDetail(authUserID)
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, "user not found")
 		return
@@ -393,6 +393,27 @@ func (ctrl *Controller) GetUserFollowings(c *gin.Context) {
 	}
 
 	response.Success(c, http.StatusOK, "user followings fetched successfully", users)
+}
+
+func (ctrl *Controller) Logout(c *gin.Context) {
+	err := ctrl.service.Logout()
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, "failed to logout")
+		return
+	}
+
+	// Clear the token cookie
+	c.SetCookie(
+		"token",
+		"",
+		-1,
+		"/",
+		"",
+		ctrl.config.NodeEnv == "production",
+		true,
+	)
+
+	response.Success(c, http.StatusOK, "logout successful", nil)
 }
 
 func NewController(s Service, cfg *config.Config) *Controller {

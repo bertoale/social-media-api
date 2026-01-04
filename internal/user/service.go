@@ -20,6 +20,7 @@ type Service interface {
 	GenerateToken(user *User) (string, error)
 	GetUserByUsername(username string) (*UserResponse, error)
 	SearchUser(keyword string, currentUserID uint) ([]*UserResponse, error)
+	GetCurrentUserDetail(currentUserID uint) (*UserResponse, error)
 	GetUserFollowers(
 		currentUserID uint,
 		limit, offset int,
@@ -28,11 +29,26 @@ type Service interface {
 		currentUserID uint,
 		limit, offset int,
 	) ([]*UserResponse, error)
+	Logout() error
 }
 
 type service struct {
 	repo Repository
 	cfg  *config.Config
+}
+
+// GetCurrentUserDetail implements Service.
+func (s *service) GetCurrentUserDetail(currentUserID uint) (*UserResponse, error) {
+	user, err := s.repo.FindCurrentUserDetail(currentUserID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get current user detail: %w", err)
+	}
+	return ToUserResponse(user), nil
+}
+
+// Logout implements Service.
+func (s *service) Logout() error {
+	return nil
 }
 
 // GetUserFollowers implements Service.

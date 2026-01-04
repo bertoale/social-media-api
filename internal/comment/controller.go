@@ -298,7 +298,6 @@ func (ctrl *Controller) GetReplies(c *gin.Context) {
 		return
 	}
 
-	// FIX → convert model → DTO
 	var resp []CommentResponse
 	for _, reply := range replies {
 		resp = append(resp, ToCommentResponse(&reply))

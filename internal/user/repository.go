@@ -19,6 +19,7 @@ type Repository interface {
 	FindByUsernameOrEmail(identifier string) (*User, error)
 	FindExploreUsers(currentUserID uint, limit, offset int) ([]User, error)
 	FindUserDetailByUsername(username string, currentUserID uint) (*User, error)
+	FindCurrentUserDetail(currentUserID uint) (*User, error)
 	Update(user *User) error
 	FindFollowingUsers(
 		currentUserID uint,
@@ -32,6 +33,27 @@ type Repository interface {
 
 type repository struct {
 	db *gorm.DB
+}
+
+// FindCurrentUserDetail implements Repository.
+func (r *repository) FindCurrentUserDetail(currentUserID uint) (*User, error) {
+	var user User
+
+	err := r.db.
+		Table("users").
+		Select(`
+			users.*,
+			(SELECT COUNT(*) FROM follows WHERE follows.following_id = users.id) AS followers_count,
+			(SELECT COUNT(*) FROM follows WHERE follows.follower_id = users.id) AS following_count
+		`).
+		Where("users.id = ?", currentUserID).
+		First(&user).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }
 
 // SearchByUsername implements Repository.
@@ -53,7 +75,7 @@ func (r *repository) SearchByUsername(
 				WHERE follows.follower_id = ?
 				AND follows.following_id = users.id
 			) AS is_followed,
-			(SELECT COUNT(*) FROM follows WHERE follows.following_id = users.id) AS follower_count,
+			(SELECT COUNT(*) FROM follows WHERE follows.following_id = users.id) AS followers_count,
 			(SELECT COUNT(*) FROM follows WHERE follows.follower_id = users.id) AS following_count
 		`, currentUserID).
 		Where("LOWER(users.username) LIKE ?", "%"+strings.ToLower(keyword)+"%").
@@ -142,14 +164,18 @@ func (r *repository) Update(user *User) error {
 }
 
 // FindUserDetailByID implements Repository.
-func (r *repository) FindUserDetailByUsername(username string, currentUserID uint) (*User, error) {
+func (r *repository) FindUserDetailByUsername(
+	username string,
+	currentUserID uint,
+) (*User, error) {
+
 	var user User
 
 	err := r.db.
-		Model(&User{}).
+		Table("users").
 		Select(`
 			users.*,
-			(SELECT COUNT(*) FROM follows WHERE follows.following_id = users.id) AS follower_count,
+			(SELECT COUNT(*) FROM follows WHERE follows.following_id = users.id) AS followers_count,
 			(SELECT COUNT(*) FROM follows WHERE follows.follower_id = users.id) AS following_count,
 			EXISTS (
 				SELECT 1 FROM follows
@@ -179,7 +205,7 @@ func (r *repository) FindFollowingUsers(
 		Select(`
 			users.*,
 			TRUE AS is_followed,
-			(SELECT COUNT(*) FROM follows WHERE follows.following_id = users.id) AS follower_count,
+			(SELECT COUNT(*) FROM follows WHERE follows.following_id = users.id) AS followers_count,
 			(SELECT COUNT(*) FROM follows WHERE follows.follower_id = users.id) AS following_count
 		`).
 		Joins(`
@@ -211,7 +237,7 @@ func (r *repository) FindFollowerByUsers(
 		Select(`
 			users.*,
 			TRUE AS is_followed,
-			(SELECT COUNT(*) FROM follows WHERE follows.following_id = users.id) AS follower_count,
+			(SELECT COUNT(*) FROM follows WHERE follows.following_id = users.id) AS followers_count,
 			(SELECT COUNT(*) FROM follows WHERE follows.follower_id = users.id) AS following_count
 		`).
 		Joins(`

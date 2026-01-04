@@ -22,4 +22,5 @@ func SetupRoute(r *gin.Engine, ctrl *Controller, cfg *config.Config) {
 	protectedAPI.GET("/users/search", ctrl.SearchUser)
 	protectedAPI.GET("/users/followers", ctrl.GetUserFollowers)
 	protectedAPI.GET("/users/followings", ctrl.GetUserFollowings)
+	protectedAPI.POST("/logout", ctrl.Logout)
 }
