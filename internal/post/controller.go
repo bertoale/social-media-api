@@ -175,7 +175,7 @@ func (ctrl *Controller) Delete(c *gin.Context) {
 // @Failure 500 {object} response.ErrorResponse
 // @Router /api/posts [get]
 func (ctrl *Controller) GetAllUnarchived(c *gin.Context) {
-	posts, err := ctrl.service.GetAllUnarchived()
+	posts, err := ctrl.service.GetAll()
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, err.Error())
 		return

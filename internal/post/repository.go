@@ -18,10 +18,35 @@ type Repository interface {
 		currentUserID uint,
 	) ([]*Post, error)
 	FindPostsLikedByUser(userID uint) ([]Post, error)
+	FindPostsByAuthor(authorID uint) ([]*Post, error)
 }
 
 type repository struct {
 	db *gorm.DB
+}
+
+// FindPostsByAuthor implements Repository.
+func (r *repository) FindPostsByAuthor(authorID uint) ([]*Post, error) {
+	var posts []*Post
+
+	err := r.db.
+		Table("posts").
+		Select(`
+			posts.*,
+			(SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.id) AS like_count,
+			(SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) AS comment_count,
+			TRUE AS is_liked
+		`).
+		Where("posts.author_id = ? AND posts.archived = ?", authorID, false).
+		Preload("Author").
+		Order("posts.created_at DESC").
+		Find(&posts).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return posts, nil
 }
 
 // GetPostsLikedByUser implements Repository.

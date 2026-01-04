@@ -52,6 +52,7 @@ type UserResponse struct {
 	FollowersCount int64  `json:"followers_count"`
 	FollowingCount int64  `json:"following_count"`
 	IsFollowed     bool   `json:"is_followed"`
+	Role           RoleType `json:"role"`
 }
 
 type AuthorResponse struct {

@@ -10,5 +10,6 @@ func ToUserResponse(u *User) *UserResponse {
 		FollowersCount: u.FollowersCount,
 		FollowingCount: u.FollowingCount,
 		IsFollowed:     u.IsFollowed,
+		Role:           u.Role,
 	}
 }

@@ -169,7 +169,7 @@ func (s *service) GetAll() ([]*PostResponse, error) {
 
 // GetPostsByAuthor implements Service.
 func (s *service) GetPostsByAuthor(authorID uint) ([]*PostResponse, error) {
-	posts, err := s.repo.FindByCurrentUser(authorID, 0)
+	posts, err := s.repo.FindPostsByAuthor(authorID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve posts: %w", err)
 	}
