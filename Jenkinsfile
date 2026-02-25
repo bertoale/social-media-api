@@ -50,25 +50,23 @@ pipeline {
                 withCredentials([file(credentialsId: 'sosmed-env', variable: 'ENV_FILE')]) {
 
                     sshagent(['vm1-ssh-key']) {
+                      sh """
+                      ssh -o StrictHostKeyChecking=no albert@${TARGET_HOST} '
+                          mkdir -p ${TARGET_PATH}
+                      '
 
-                        sh """
-                        ssh -o StrictHostKeyChecking=no albert@${TARGET_HOST} '
-                            mkdir -p ${TARGET_PATH}
-                        '
+                      cat \$ENV_FILE | ssh -o StrictHostKeyChecking=no \
+                          albert@${TARGET_HOST} "cat > ${TARGET_PATH}/.env"
 
-                        scp -o StrictHostKeyChecking=no \
-                            \$ENV_FILE albert@${TARGET_HOST}:${TARGET_PATH}/.env
-
-                        ssh -o StrictHostKeyChecking=no \
-                            albert@${TARGET_HOST} '
-                                cd ${TARGET_PATH} &&
-                                export IMAGE_TAG=${IMAGE_TAG} &&
-                                docker pull ${IMAGE_NAME}:${IMAGE_TAG} &&
-                                docker compose down &&
-                                docker compose up -d
-                            '
-                        """
-                    }
+                      ssh -o StrictHostKeyChecking=no albert@${TARGET_HOST} '
+                          cd ${TARGET_PATH} &&
+                          export IMAGE_TAG=${IMAGE_TAG} &&
+                          docker pull ${IMAGE_NAME}:${IMAGE_TAG} &&
+                          docker compose down || true &&
+                          docker compose up -d
+                      '
+                      """
+                  }
                 }
             }
         }
