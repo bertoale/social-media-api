@@ -53,7 +53,7 @@ pipeline {
 
                         sh """
                         scp -o StrictHostKeyChecking=no \
-                            \$ENV_FILE albert@192.168.56.119:/home/opt/social-media-api/.env
+                            \$ENV_FILE albert@192.168.56.119:/opt/social-media-api/.env
 
                         ssh -o StrictHostKeyChecking=no \
                             albert@192.168.56.119 '
