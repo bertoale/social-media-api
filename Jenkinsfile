@@ -4,7 +4,7 @@ pipeline {
     environment {
         IMAGE_NAME = "dragonxp/social-media-api"
         IMAGE_TAG  = "${env.BUILD_NUMBER}"
-        TARGET_HOST = "192.168.56.120"
+        TARGET_HOST = "192.168.56.119"
         TARGET_PATH = "/home/opt/social-media-api"
     }
 
@@ -13,7 +13,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 git branch: 'main',
-                    url: 'https://github.com/username/social-media-api.git'
+                    url: 'https://github.com/bertoale/social-media-api.git'
             }
         }
 
