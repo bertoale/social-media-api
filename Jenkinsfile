@@ -47,35 +47,24 @@ pipeline {
 
         stage('Deploy to Production') {
             steps {
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: 'vm1-login',
-                        usernameVariable: 'SSH_USER',
-                        passwordVariable: 'SSH_PASS'
-                    ),
-                    file(
-                        credentialsId: 'sosmed-env',
-                        variable: 'ENV_FILE'
-                    )
-                ]) {
+                withCredentials([file(credentialsId: 'sosmed-env', variable: 'ENV_FILE')]) {
 
-                    sh '''
-                    sudo apt-get install -y sshpass >/dev/null 2>&1 || true
+                    sshagent(['vm1-ssh-key']) {
 
-                    # copy .env ke server
-                    sshpass -p "$SSH_PASS" scp -o StrictHostKeyChecking=no \
-                        $ENV_FILE $SSH_USER@$TARGET_HOST:$TARGET_PATH/.env
+                        sh """
+                        scp -o StrictHostKeyChecking=no \
+                            \$ENV_FILE albert@192.168.56.119:/home/opt/social-media-api/.env
 
-                    # deploy
-                    sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no \
-                        $SSH_USER@$TARGET_HOST "
-                        cd $TARGET_PATH &&
-                        export IMAGE_TAG=$IMAGE_TAG &&
-                        docker pull $IMAGE_NAME:$IMAGE_TAG &&
-                        docker compose down &&
-                        docker compose up -d
-                    "
-                    '''
+                        ssh -o StrictHostKeyChecking=no \
+                            albert@192.168.56.119 '
+                            cd /home/opt/social-media-api &&
+                            export IMAGE_TAG=${IMAGE_TAG} &&
+                            docker pull ${IMAGE_NAME}:${IMAGE_TAG} &&
+                            docker compose down &&
+                            docker compose up -d
+                            '
+                        """
+                    }
                 }
             }
         }
