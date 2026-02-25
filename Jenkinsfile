@@ -5,7 +5,7 @@ pipeline {
         IMAGE_NAME = "albertxp/social-media-api"
         IMAGE_TAG  = "${env.BUILD_NUMBER}"
         TARGET_HOST = "192.168.56.119"
-        TARGET_PATH = "/home/social-media-api"
+        TARGET_PATH = "/home/albert/apps/social-media-api"
     }
 
     stages {
