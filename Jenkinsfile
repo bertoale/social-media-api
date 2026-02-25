@@ -5,7 +5,7 @@ pipeline {
         IMAGE_NAME = "albertxp/social-media-api"
         IMAGE_TAG  = "${env.BUILD_NUMBER}"
         TARGET_HOST = "192.168.56.119"
-        TARGET_PATH = "/home/opt/social-media-api"
+        TARGET_PATH = "/opt/social-media-api"
     }
 
     stages {
@@ -52,16 +52,20 @@ pipeline {
                     sshagent(['vm1-ssh-key']) {
 
                         sh """
+                        ssh -o StrictHostKeyChecking=no albert@${TARGET_HOST} '
+                            mkdir -p ${TARGET_PATH}
+                        '
+
                         scp -o StrictHostKeyChecking=no \
-                            \$ENV_FILE albert@192.168.56.119:/opt/social-media-api/.env
+                            \$ENV_FILE albert@${TARGET_HOST}:${TARGET_PATH}/.env
 
                         ssh -o StrictHostKeyChecking=no \
-                            albert@192.168.56.119 '
-                            cd /home/opt/social-media-api &&
-                            export IMAGE_TAG=${IMAGE_TAG} &&
-                            docker pull ${IMAGE_NAME}:${IMAGE_TAG} &&
-                            docker compose down &&
-                            docker compose up -d
+                            albert@${TARGET_HOST} '
+                                cd ${TARGET_PATH} &&
+                                export IMAGE_TAG=${IMAGE_TAG} &&
+                                docker pull ${IMAGE_NAME}:${IMAGE_TAG} &&
+                                docker compose down &&
+                                docker compose up -d
                             '
                         """
                     }
