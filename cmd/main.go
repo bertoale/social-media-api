@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	_ "go-sosmed/docs"
 	"go-sosmed/internal/comment"
@@ -90,6 +91,27 @@ func main() {
 		})
 	})
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	// === Health Check ===
+	r.GET("/health", func(c *gin.Context) {
+    db := config.GetDB()
+
+    sqlDB, err := db.DB()
+    if err != nil {
+        c.JSON(500, gin.H{"status": "error"})
+        return
+    }
+
+    ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+    defer cancel()
+
+    if err := sqlDB.PingContext(ctx); err != nil {
+        c.JSON(503, gin.H{"status": "error"})
+        return
+    }
+
+    c.JSON(200, gin.H{"status": "ok"})
+})
 
 	r.Use(middlewares.GinErrorHandler())
 
