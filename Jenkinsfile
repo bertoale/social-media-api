@@ -59,6 +59,7 @@ pipeline {
 
                           ssh -o StrictHostKeyChecking=no albert@${TARGET_HOST} "
                               cd ${TARGET_PATH} &&
+                              chmod 600 .env &&
                               export IMAGE_TAG=${IMAGE_TAG} &&
                               docker pull ${IMAGE_NAME}:${IMAGE_TAG} &&
                               docker compose down &&
