@@ -408,7 +408,7 @@ func (ctrl *Controller) Logout(c *gin.Context) {
 		"",
 		-1,
 		"/",
-		"",
+		ctrl.config.CookieDomain, // domain dari env
 		ctrl.config.NodeEnv == "production",
 		true,
 	)

@@ -31,6 +31,8 @@ type Config struct {
 	MailjetHost      string // Mailjet SMTP host
 	MailSenderEmail  string // Email address untuk sender
 	MailSenderName   string // Nama sender yang tampil di email
+
+	CookieDomain string // Domain untuk cookie
 }
 
 // LoadConfig membaca konfigurasi dari file .env dan environment variables
@@ -65,6 +67,8 @@ func LoadConfig() *Config {
 		MailjetHost:      getEnv("MAILJET_HOST", "in-v3.mailjet.com"),
 		MailSenderEmail:  getEnv("MAIL_SENDER_EMAIL", "noreply@goevent.com"),
 		MailSenderName:   getEnv("MAIL_SENDER_NAME", "GoEvent App"),
+
+		CookieDomain: getEnv("COOKIE_DOMAIN", ""),
 	}
 }
 
