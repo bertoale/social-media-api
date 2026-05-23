@@ -1,20 +1,23 @@
 package user
 
 import (
+	"context"
 	"fmt"
+	"go-sosmed/pkg/cloudinary"
 	"go-sosmed/pkg/config"
 	"go-sosmed/pkg/response"
 	"net/http"
-	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
 type Controller struct {
-	service Service
-	config  *config.Config
+	service    Service
+	config     *config.Config
+	cloudinary *cloudinary.Service
 }
 
 // helper function to parse uint param from URL
@@ -69,7 +72,7 @@ func (ctrl *Controller) Register(c *gin.Context) {
 
 // Login godoc
 // @Summary Login user
-// @Description Authenticate user and return JWT token
+// @Description Authenticate user and create session
 // @Tags User
 // @Accept json
 // @Produce json
@@ -84,7 +87,9 @@ func (ctrl *Controller) Login(c *gin.Context) {
 		response.Error(c, http.StatusBadRequest, "invalid request body")
 		return
 	}
-	token, user, err := ctrl.service.Login(&req)
+	ipAddress := c.ClientIP()
+	userAgent := c.GetHeader("User-Agent")
+	token, user, err := ctrl.service.Login(&req, ipAddress, userAgent)
 	if err != nil {
 		response.Error(c, http.StatusUnauthorized, err.Error())
 		return
@@ -92,7 +97,7 @@ func (ctrl *Controller) Login(c *gin.Context) {
 	c.SetCookie(
 		"token",
 		token,
-		int((7 * 24 * time.Hour).Seconds()),
+		int((24 * time.Hour).Seconds()),
 		"/",
 		"",
 		ctrl.config.NodeEnv == "production",
@@ -100,7 +105,6 @@ func (ctrl *Controller) Login(c *gin.Context) {
 	)
 	response.Success(c, http.StatusOK, "login successful", gin.H{
 		"user": user,
-		// "token": token,
 	})
 }
 
@@ -183,9 +187,8 @@ func (ctrl *Controller) UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	// Delete old avatar file if a new one was uploaded
 	if req.Avatar != nil && oldAvatar != "" && oldAvatar != *req.Avatar {
-		_ = os.Remove("." + oldAvatar)
+		_ = ctrl.cloudinary.DeleteByURL(context.Background(), oldAvatar)
 	}
 
 	response.Success(c, http.StatusOK, "profile updated successfully", user)
@@ -396,19 +399,31 @@ func (ctrl *Controller) GetUserFollowings(c *gin.Context) {
 }
 
 func (ctrl *Controller) Logout(c *gin.Context) {
-	err := ctrl.service.Logout()
+	token, err := c.Cookie("token")
+	if err != nil {
+		token = c.GetHeader("Authorization")
+		if token != "" && strings.HasPrefix(token, "Bearer ") {
+			token = strings.TrimPrefix(token, "Bearer ")
+		}
+	}
+
+	if token == "" {
+		response.Error(c, http.StatusBadRequest, "token not found")
+		return
+	}
+
+	err = ctrl.service.Logout(token)
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, "failed to logout")
 		return
 	}
 
-	// Clear the token cookie
 	c.SetCookie(
 		"token",
 		"",
 		-1,
 		"/",
-		ctrl.config.CookieDomain, // domain dari env
+		ctrl.config.CookieDomain,
 		ctrl.config.NodeEnv == "production",
 		true,
 	)
@@ -416,9 +431,10 @@ func (ctrl *Controller) Logout(c *gin.Context) {
 	response.Success(c, http.StatusOK, "logout successful", nil)
 }
 
-func NewController(s Service, cfg *config.Config) *Controller {
+func NewController(s Service, cfg *config.Config, cloudinaryService *cloudinary.Service) *Controller {
 	return &Controller{
-		service: s,
-		config:  cfg,
+		service:    s,
+		config:     cfg,
+		cloudinary: cloudinaryService,
 	}
 }

@@ -2,22 +2,20 @@ package user
 
 import (
 	"fmt"
+	"go-sosmed/internal/session"
 	"go-sosmed/pkg/config"
 	"strings"
-	"time"
 
-	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type Service interface {
 	Register(req *RegisterRequest) (*UserResponse, error)
-	Login(req *LoginRequest) (string, *UserResponse, error)
+	Login(req *LoginRequest, ipAddress, userAgent string) (string, *UserResponse, error)
 	UpdateProfile(userID uint, req *UpdateProfileRequest) (*UserResponse, error)
 	GetUserByID(userID uint) (*UserResponse, error)
 	GetExploreUsers(currentUserID uint, limit, offset int) ([]UserResponse, error)
 	GetUserDetailByUsername(username string, currentUserID uint) (*UserResponse, error)
-	GenerateToken(user *User) (string, error)
 	GetUserByUsername(username string) (*UserResponse, error)
 	SearchUser(keyword string, currentUserID uint) ([]*UserResponse, error)
 	GetCurrentUserDetail(currentUserID uint) (*UserResponse, error)
@@ -29,12 +27,13 @@ type Service interface {
 		currentUserID uint,
 		limit, offset int,
 	) ([]*UserResponse, error)
-	Logout() error
+	Logout(token string) error
 }
 
 type service struct {
-	repo Repository
-	cfg  *config.Config
+	repo       Repository
+	cfg        *config.Config
+	sessService session.Service
 }
 
 // GetCurrentUserDetail implements Service.
@@ -47,8 +46,8 @@ func (s *service) GetCurrentUserDetail(currentUserID uint) (*UserResponse, error
 }
 
 // Logout implements Service.
-func (s *service) Logout() error {
-	return nil
+func (s *service) Logout(token string) error {
+	return s.sessService.DeleteSession(token)
 }
 
 // GetUserFollowers implements Service.
@@ -83,22 +82,18 @@ func (s *service) GetUserFollowings(currentUserID uint, limit int, offset int) (
 
 // SearchByUsername implements Service.
 func (s *service) SearchUser(keyword string, currentUserID uint) ([]*UserResponse, error) {
-	// 1. validasi keyword
 	keyword = strings.TrimSpace(keyword)
 	if len(keyword) < 1 {
 		return []*UserResponse{}, nil
 	}
 
-	// 2. ambil data dari repo
 	users, err := s.repo.SearchByUsername(keyword, currentUserID, 10)
 	if err != nil {
 		return nil, err
 	}
 
-	// 3. mapping ke response
 	var responses []*UserResponse
 	for _, u := range users {
-		// opsional: skip diri sendiri
 		if u.ID == currentUserID {
 			continue
 		}
@@ -140,29 +135,6 @@ func (s *service) GetUserByUsername(username string) (*UserResponse, error) {
 	return ToUserResponse(user), nil
 }
 
-type Claims struct {
-	ID   uint     `json:"id"`
-	Role RoleType `json:"role"`
-	jwt.RegisteredClaims
-}
-
-func (s *service) GenerateToken(user *User) (string, error) {
-	duration, err := time.ParseDuration(s.cfg.JWTExpires)
-	if err != nil {
-		duration = 168 * time.Hour // default 7 days
-	}
-	claims := Claims{
-		ID:   user.ID,
-		Role: user.Role,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(duration)),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-		},
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(s.cfg.JWTSecret))
-}
-
 // GetUserByID implements Service.
 func (s *service) GetUserByID(userID uint) (*UserResponse, error) {
 	user, err := s.repo.FindByID(userID)
@@ -173,18 +145,17 @@ func (s *service) GetUserByID(userID uint) (*UserResponse, error) {
 }
 
 // Login implements Service.
-func (s *service) Login(req *LoginRequest) (string, *UserResponse, error) {
+func (s *service) Login(req *LoginRequest, ipAddress, userAgent string) (string, *UserResponse, error) {
 	user, err := s.repo.FindByEmail(req.Email)
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to get user by email: %w", err)
 	}
-	// Check password
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
 		return "", nil, fmt.Errorf("invalid password: %w", err)
 	}
-	token, err := s.GenerateToken(user)
+	token, err := s.sessService.CreateSession(user.ID, ipAddress, userAgent)
 	if err != nil {
-		return "", nil, fmt.Errorf("failed to generate token: %w", err)
+		return "", nil, fmt.Errorf("failed to create session: %w", err)
 	}
 	return token, ToUserResponse(user), nil
 }
@@ -199,7 +170,6 @@ func (s *service) Register(req *RegisterRequest) (*UserResponse, error) {
 	if existingUsername != nil {
 		return nil, fmt.Errorf("username already in use")
 	}
-	// Hash password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, fmt.Errorf("failed to hash password: %w", err)
@@ -222,7 +192,6 @@ func (s *service) UpdateProfile(userID uint, req *UpdateProfileRequest) (*UserRe
 		return nil, fmt.Errorf("user not found")
 	}
 
-	// update allowed fields
 	if req.Username != nil {
 		user.Username = *req.Username
 	}
@@ -251,6 +220,10 @@ func (s *service) UpdateProfile(userID uint, req *UpdateProfileRequest) (*UserRe
 	return ToUserResponse(user), nil
 }
 
-func NewService(repo Repository, cfg *config.Config) Service {
-	return &service{repo: repo, cfg: cfg}
+func NewService(repo Repository, cfg *config.Config, sessionService session.Service) Service {
+	return &service{
+		repo:        repo,
+		cfg:         cfg,
+		sessService: sessionService,
+	}
 }

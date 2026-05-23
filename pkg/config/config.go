@@ -3,50 +3,44 @@
 package config
 
 import (
-	"log"
 	"os"
 
 	"github.com/joho/godotenv"
 )
 
-// Config struct menyimpan semua konfigurasi aplikasi
-// Semua field adalah string karena dibaca dari environment variables
 type Config struct {
-	DBHost     string // Database host (default: localhost)
-	DBPort     string // Database port (default: 5432 untuk PostgreSQL)
-	DBUser     string // Database user
-	DBPassword string // Database password
-	DBName     string // Database name
-	DBSSLMode  string // Database SSL mode (disable/require/verify-ca/verify-full)
-	JWTSecret  string // Secret key untuk signing JWT tokens
-	JWTExpires string // JWT expiration duration (contoh: 168h = 7 hari)
-	Port       string // Port untuk aplikasi web server
-	NodeEnv    string // Environment mode (development/production)
-	CorsOrigin string // Allowed CORS origin (URL frontend)
+	DBHost     string
+	DBPort     string
+	DBUser     string
+	DBPassword string
+	DBName     string
+	DBSSLMode  string
+	JWTSecret  string
+	SessionExpires string
+	Port       string
+	NodeEnv    string
+	CorsOrigin string
 
-	// Mailjet email configuration
-	MailjetAPIKey    string // Mailjet API key
-	MailjetAPISecret string // Mailjet API secret
-	MailjetPort      string // Mailjet SMTP port
-	MailjetHost      string // Mailjet SMTP host
-	MailSenderEmail  string // Email address untuk sender
-	MailSenderName   string // Nama sender yang tampil di email
+	MailjetAPIKey    string
+	MailjetAPISecret string
+	MailjetPort      string
+	MailjetHost      string
+	MailSenderEmail  string
+	MailSenderName   string
 
-	CookieDomain string // Domain untuk cookie
+	CookieDomain string
+
+	CloudinaryCloudName string
+	CloudinaryAPIKey    string
+	CloudinaryAPISecret string
+	CloudinaryFolder    string
 }
 
 // LoadConfig membaca konfigurasi dari file .env dan environment variables
 // Priority: Environment variables > .env file > default values
 // Returns: Pointer ke Config struct yang sudah terisi
 func LoadConfig() *Config {
-	// Load .env file jika ada
-	// Jika .env tidak ditemukan, tidak akan error, hanya warning
-	err := godotenv.Load()
-	if err != nil {
-		log.Println("Warning: Error loading .env file, using environment variables")
-	}
-	// Return Config struct dengan values dari getEnv()
-	// getEnv() akan mencari environment variable, jika tidak ada gunakan default value
+	_ = godotenv.Load()
 	return &Config{
 		DBHost:     getEnv("DB_HOST", "localhost"),
 		DBPort:     getEnv("DB_PORT", "5432"),
@@ -55,12 +49,11 @@ func LoadConfig() *Config {
 		DBName:     getEnv("DB_NAME", "post_db"),
 		DBSSLMode:  getEnv("DB_SSLMODE", "disable"),
 		JWTSecret:  getEnv("JWT_SECRET", "your_super_secret_jwt_key_post_app_2025"),
-		JWTExpires: getEnv("JWT_EXPIRES_IN", "168h"),
+		SessionExpires: getEnv("SESSION_EXPIRES", "24h"),
 		Port:       getEnv("PORT", "5000"),
 		NodeEnv:    getEnv("NODE_ENV", "development"),
 		CorsOrigin: getEnv("CORS_ORIGIN", "http://localhost:3000"),
 
-		// Mailjet configuration
 		MailjetAPIKey:    getEnv("MAILJET_API_KEY", ""),
 		MailjetAPISecret: getEnv("MAILJET_API_SECRET", ""),
 		MailjetPort:      getEnv("MAILJET_PORT", "587"),
@@ -69,6 +62,11 @@ func LoadConfig() *Config {
 		MailSenderName:   getEnv("MAIL_SENDER_NAME", "GoEvent App"),
 
 		CookieDomain: getEnv("COOKIE_DOMAIN", ""),
+
+		CloudinaryCloudName: getEnv("CLOUDINARY_CLOUD_NAME", ""),
+		CloudinaryAPIKey:    getEnv("CLOUDINARY_API_KEY", ""),
+		CloudinaryAPISecret: getEnv("CLOUDINARY_API_SECRET", ""),
+		CloudinaryFolder:    getEnv("CLOUDINARY_FOLDER", "social-media"),
 	}
 }
 

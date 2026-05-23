@@ -1,25 +1,16 @@
 package middlewares
 
 import (
+	"go-sosmed/internal/session"
+	"go-sosmed/pkg/config"
 	"net/http"
 	"strings"
 
-	"go-sosmed/pkg/config"
-
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 )
 
-type Claims struct {
-	ID   uint   `json:"id"`
-	Role string `json:"role"`
-	jwt.RegisteredClaims
-}
-
-func Authenticate(cfg *config.Config) gin.HandlerFunc {
+func Authenticate(cfg *config.Config, sessionService session.Service) gin.HandlerFunc {
 	return func(c *gin.Context) {
-
-		// Ambil token dari header Authorization atau cookie
 		tokenString := c.GetHeader("Authorization")
 		if tokenString != "" && strings.HasPrefix(tokenString, "Bearer ") {
 			tokenString = strings.TrimPrefix(tokenString, "Bearer ")
@@ -30,7 +21,6 @@ func Authenticate(cfg *config.Config) gin.HandlerFunc {
 			}
 		}
 
-		// Token tidak ada
 		if tokenString == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"message": "Akses ditolak. Token tidak ditemukan.",
@@ -39,12 +29,8 @@ func Authenticate(cfg *config.Config) gin.HandlerFunc {
 			return
 		}
 
-		claims := &Claims{}
-		token, err := jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) {
-			return []byte(cfg.JWTSecret), nil
-		})
-
-		if err != nil || !token.Valid {
+		sess, err := sessionService.ValidateSession(tokenString)
+		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"message": "Token tidak valid atau kadaluarsa.",
 			})
@@ -52,11 +38,10 @@ func Authenticate(cfg *config.Config) gin.HandlerFunc {
 			return
 		}
 
-		// Validasi user ada di database
 		db := config.GetDB()
 
 		var count int64
-		if err := db.Table("users").Where("id = ?", claims.ID).Count(&count).Error; err != nil || count == 0 {
+		if err := db.Table("users").Where("id = ?", sess.UserID).Count(&count).Error; err != nil || count == 0 {
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"message": "User tidak ditemukan.",
 			})
@@ -64,9 +49,17 @@ func Authenticate(cfg *config.Config) gin.HandlerFunc {
 			return
 		}
 
-		// Taruh user data di context
-		c.Set("userID", claims.ID)
-		c.Set("userRole", claims.Role)
+		var userRole string
+		if err := db.Table("users").Where("id = ?", sess.UserID).Select("role").Scan(&userRole).Error; err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"message": "Gagal mengambil role user.",
+			})
+			c.Abort()
+			return
+		}
+
+		c.Set("userID", sess.UserID)
+		c.Set("userRole", userRole)
 
 		c.Next()
 	}
@@ -74,7 +67,6 @@ func Authenticate(cfg *config.Config) gin.HandlerFunc {
 
 func Authorize(roles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-
 		roleValue, exists := c.Get("userRole")
 		if !exists {
 			c.JSON(http.StatusUnauthorized, gin.H{
@@ -86,13 +78,11 @@ func Authorize(roles ...string) gin.HandlerFunc {
 
 		userRole := roleValue.(string)
 
-		// Jika tidak ada batasan role, semua user boleh
 		if len(roles) == 0 {
 			c.Next()
 			return
 		}
 
-		// Cocokkan role
 		for _, r := range roles {
 			if r == userRole {
 				c.Next()

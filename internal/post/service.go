@@ -1,8 +1,9 @@
 package post
 
 import (
+	"context"
 	"fmt"
-	"go-sosmed/pkg/utils"
+	"go-sosmed/pkg/cloudinary"
 )
 
 type Service interface {
@@ -22,7 +23,8 @@ type Service interface {
 }
 
 type service struct {
-	repo Repository
+	repo      Repository
+	cloudinary *cloudinary.Service
 }
 
 // GetLikedPostsByUser implements Service.
@@ -144,10 +146,9 @@ func (s *service) Delete(postID uint, userID uint, userRole string) error {
 		return fmt.Errorf("unauthorized to delete this post")
 	}
 
-	// Hapus gambar jika ada
 	if post.Image != "" {
-		if err := utils.DeleteFile(post.Image); err != nil {
-			fmt.Printf("Warning: failed to delete post image: %v\n", err)
+		if err := s.cloudinary.DeleteByURL(context.Background(), post.Image); err != nil {
+			fmt.Printf("Warning: failed to delete post image from Cloudinary: %v\n", err)
 		}
 	}
 
@@ -219,6 +220,6 @@ func (s *service) Update(userID, postID uint, req *UpdatePostRequest) (*PostResp
 	return ToPostResponse(post), nil
 }
 
-func NewService(repo Repository) Service {
-	return &service{repo: repo}
+func NewService(repo Repository, cloudinaryService *cloudinary.Service) Service {
+	return &service{repo: repo, cloudinary: cloudinaryService}
 }

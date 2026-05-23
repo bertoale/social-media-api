@@ -9,7 +9,9 @@ import (
 	"go-sosmed/internal/like"
 	"go-sosmed/internal/post"
 	"go-sosmed/internal/report"
+	"go-sosmed/internal/session"
 	"go-sosmed/internal/user"
+	cloudinaryPkg "go-sosmed/pkg/cloudinary"
 	"go-sosmed/pkg/config"
 	"go-sosmed/pkg/middlewares"
 	"log"
@@ -38,7 +40,7 @@ import (
 // @securityDefinitions.apikey BearerAuth
 // @in header
 // @name Authorization
-// @description Type "Bearer" followed by a space and JWT token.
+// @description Type "Bearer" followed by a space and session token.
 
 func main() {
 	cfg := config.LoadConfig()
@@ -76,6 +78,7 @@ func main() {
 		&follow.Follow{},
 		&comment.Comment{},
 		&report.Report{},
+		&session.Session{},
 	}
 	if err := db.AutoMigrate(tables...); err != nil {
 		log.Fatalf("Database migration failed: %v", err)
@@ -117,35 +120,55 @@ func main() {
 
 	//seeder
 	user.SeedAdminUser()
+
+	var cloudinaryService *cloudinaryPkg.Service
+	if cfg.CloudinaryCloudName != "" && cfg.CloudinaryAPIKey != "" && cfg.CloudinaryAPISecret != "" {
+		cld, cldErr := cloudinaryPkg.NewService(
+			cfg.CloudinaryCloudName,
+			cfg.CloudinaryAPIKey,
+			cfg.CloudinaryAPISecret,
+			cfg.CloudinaryFolder,
+		)
+		if cldErr != nil {
+			log.Printf("Warning: Cloudinary not configured: %v", cldErr)
+		} else {
+			cloudinaryService = cld
+		}
+	} else {
+		log.Println("Cloudinary not configured, uploads will fail")
+	}
+
 	userRepo := user.NewRepository(db)
-	userService := user.NewService(userRepo, cfg)
-	userController := user.NewController(userService, cfg)
-	user.SetupRoute(r, userController, cfg)
+	sessionRepo := session.NewRepository(db)
+	sessionService := session.NewService(sessionRepo, cfg)
+	userService := user.NewService(userRepo, cfg, sessionService)
+	userController := user.NewController(userService, cfg, cloudinaryService)
+	user.SetupRoute(r, userController, cfg, sessionService, cloudinaryService)
 
 	postRepo := post.NewRepository(db)
-	postService := post.NewService(postRepo)
+	postService := post.NewService(postRepo, cloudinaryService)
 	postController := post.NewController(postService)
-	post.SetupPostRoute(r, postController, cfg)
+	post.SetupPostRoute(r, postController, cfg, sessionService, cloudinaryService)
 
 	likeRepo := like.NewRepository(db)
 	likeService := like.NewService(likeRepo)
 	likeController := like.NewController(likeService)
-	like.SetupLikeRoute(r, likeController, cfg)
+	like.SetupLikeRoute(r, likeController, cfg, sessionService)
 
 	followRepo := follow.NewRepository(db)
 	followService := follow.NewService(followRepo)
 	followController := follow.NewController(followService)
-	follow.SetupFollowRoute(r, followController, cfg)
+	follow.SetupFollowRoute(r, followController, cfg, sessionService)
 
 	commentRepo := comment.NewRepository(db)
 	commentService := comment.NewService(commentRepo, postRepo)
 	commentController := comment.NewController(commentService)
-	comment.SetupCommentRoute(r, commentController, cfg)
+	comment.SetupCommentRoute(r, commentController, cfg, sessionService)
 
 	reportRepo := report.NewRepository(db)
 	reportService := report.NewService(reportRepo)
 	reportController := report.NewController(reportService)
-	report.SetupRoute(r, reportController, cfg)
+	report.SetupRoute(r, reportController, cfg, sessionService)
 
 	// 404 Not Found
 	r.NoRoute(func(c *gin.Context) {

@@ -1,15 +1,16 @@
 package comment
 
 import (
+	"go-sosmed/internal/session"
 	"go-sosmed/pkg/config"
 	"go-sosmed/pkg/middlewares"
 
 	"github.com/gin-gonic/gin"
 )
 
-func SetupCommentRoute(r *gin.Engine, ctrl *Controller, cfg *config.Config) {
+func SetupCommentRoute(r *gin.Engine, ctrl *Controller, cfg *config.Config, sessionService session.Service) {
 	api := r.Group("/api")
-	api.Use(middlewares.Authenticate(cfg))
+	api.Use(middlewares.Authenticate(cfg, sessionService))
 
 	// Create & get comments of a post
 	api.POST("/posts/:post_id/comments", ctrl.CreateComment)

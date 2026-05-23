@@ -1,20 +1,22 @@
 package user
 
 import (
+	"go-sosmed/internal/session"
+	cloudinaryPkg "go-sosmed/pkg/cloudinary"
 	"go-sosmed/pkg/config"
 	"go-sosmed/pkg/middlewares"
 
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRoute(r *gin.Engine, ctrl *Controller, cfg *config.Config) {
+func SetupRoute(r *gin.Engine, ctrl *Controller, cfg *config.Config, sessionService session.Service, cloudinaryService *cloudinaryPkg.Service) {
 	publicAPI := r.Group("/api")
 	publicAPI.POST("/register", ctrl.Register)
 	publicAPI.POST("/login", ctrl.Login)
 
 	protectedAPI := r.Group("/api")
-	protectedAPI.Use(middlewares.Authenticate(cfg))
-	protectedAPI.PUT("/users/me", middlewares.UploadAvatar(), ctrl.UpdateProfile)
+	protectedAPI.Use(middlewares.Authenticate(cfg, sessionService))
+	protectedAPI.PUT("/users/me", middlewares.UploadAvatar(cloudinaryService), ctrl.UpdateProfile)
 	protectedAPI.GET("/users/me", ctrl.GetCurrentUser)
 	protectedAPI.GET("/users/username/:username", ctrl.GetUserDetailByUsername)
 
