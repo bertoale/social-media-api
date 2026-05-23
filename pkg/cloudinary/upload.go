@@ -41,21 +41,24 @@ func (s *Service) Upload(ctx context.Context, file multipart.File, header *multi
 		return "", fmt.Errorf("failed to upload to cloudinary: %w", err)
 	}
 
-	return result.SecureURL, nil
+	return result.PublicID, nil
 }
 
-func (s *Service) DeleteByURL(ctx context.Context, url string) error {
-	if url == "" {
+func (s *Service) DeleteByURL(ctx context.Context, identifier string) error {
+	if identifier == "" {
 		return nil
 	}
 
-	if !strings.Contains(url, "res.cloudinary.com") {
-		return nil
-	}
+	publicID := identifier
 
-	publicID := s.extractPublicID(url)
-	if publicID == "" {
-		return nil
+	if strings.HasPrefix(identifier, "http://") || strings.HasPrefix(identifier, "https://") {
+		if !strings.Contains(identifier, "res.cloudinary.com") {
+			return nil
+		}
+		publicID = s.extractPublicID(identifier)
+		if publicID == "" {
+			return nil
+		}
 	}
 
 	_, err := s.cld.Upload.Destroy(ctx, uploader.DestroyParams{
@@ -74,7 +77,6 @@ func (s *Service) extractPublicID(url string) string {
 		return ""
 	}
 
-	afterFolder := url[idx+len(s.folder)+1:]
-	publicID := s.folder + "/" + strings.TrimSuffix(afterFolder, filepath.Ext(afterFolder))
-	return publicID
+	afterFolder := url[idx:]
+	return strings.TrimSuffix(afterFolder, filepath.Ext(afterFolder))
 }
